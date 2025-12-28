@@ -9,7 +9,7 @@ FROM node:25-alpine AS builder
 WORKDIR /usr/src/app
 COPY --from=build_deps /usr/src/app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+RUN pnpm build
 
 # Stage 3: Production dependencies
 FROM node:25-alpine AS prod-deps
@@ -43,4 +43,4 @@ USER nestjs
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npm run migration:run && npm run start:prod"]
+CMD ["sh", "-c", "pnpm migration:run && pnpm start:prod"]

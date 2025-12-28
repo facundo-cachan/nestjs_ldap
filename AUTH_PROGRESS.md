@@ -186,8 +186,8 @@ Todos los casos de la tabla deben ser testeados:
 ### 1. Migración de Base de Datos (URGENTE)
 Crear migración para agregar las nuevas columnas:
 ```bash
-npm run migration:generate -- AddRolesAndAdminToDirectoryNode
-npm run migration:run
+pnpm migration:generate -- AddRolesAndAdminToDirectoryNode
+pnpm migration:run
 ```
 
 ### 2. Tests E2E (ALTA PRIORIDAD)

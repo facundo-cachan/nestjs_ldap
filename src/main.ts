@@ -22,7 +22,6 @@ dotenv.config();
 const globalPrefix = '';
 const port = Number(process.env.PORT);
 const host = String(process.env.HOST);
-const swaggerPort = Number(port + 10);
 
 // Configuración de Swagger
 const config = new DocumentBuilder()

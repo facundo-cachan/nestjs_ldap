@@ -13,13 +13,13 @@
 # 🏗️ SETUP INICIAL - Crear Estructura de Prueba
 ###############################################################################
 
-### SETUP 1: Crear Root OU (Company)
+### SETUP 1: Crear Root DC (Company)
 POST {{host}}/directory HTTP/1.1
 Content-Type: application/json
 
 {
   "name": "company",
-  "type": "OU",
+  "type": "DC",
   "attributes": {
     "description": "Root Organization"
   }
@@ -32,7 +32,7 @@ Content-Type: application/json
 {
   "name": "sales",
   "type": "OU",
-  "parentId": 1,
+  "parentId": 1, // type: DC (Root), id
   "attributes": {
     "description": "Sales Department"
   }
@@ -59,7 +59,7 @@ Content-Type: application/json
   "name": "superadmin",
   "type": "USER",
   "password": "admin123",
-  "parentId": 1,
+  "parentId": 1, // type: OU (marketing), id: 2
   "attributes": {
     "email": "superadmin@company.com",
     "isSuperAdmin": true
@@ -532,6 +532,6 @@ GET {{host}}/ HTTP/1.1
 # 5. Tests E2E:
 #    - 22/22 tests pasando (100%)
 #    - Ver: test/auth-tasks-validation.e2e-spec.ts
-#    - Ejecutar: npm run test:e2e
+#    - Ejecutar: pnpm test:e2e
 
 ###############################################################################

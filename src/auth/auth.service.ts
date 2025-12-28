@@ -32,7 +32,7 @@ export class AuthService {
       if (isMatch) {
         // Eliminamos el password del objeto antes de retornarlo
         const { password, ...result } = user;
-        console.log({ result });
+
         return result;
       }
     }

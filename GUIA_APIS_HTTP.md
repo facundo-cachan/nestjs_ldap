@@ -18,7 +18,7 @@ ID: humao.rest-client
 ### 2. **Iniciar el Servidor**
 
 ```bash
-npm run start:dev
+pnpm start:dev
 ```
 
 El servidor debe estar corriendo en `http://localhost:3000`
@@ -222,12 +222,12 @@ Authorization: Bearer {{userToken}}
 
 ---
 
-## 🧪 Tests Automatizados
+## 🧪 🤖 Tests Automatizados
 
 Para ejecutar los tests E2E completos:
 
 ```bash
-npm run test:e2e -- auth-tasks-validation.e2e-spec.ts
+pnpm test:e2e -- auth-tasks-validation.e2e-spec.ts
 ```
 
 **Resultado esperado:**
@@ -237,7 +237,7 @@ Tests:       22 passed, 22 total
 
 ---
 
-## 🔍 Debugging
+## 🧪 🔍 Debugging
 
 ### Ver el mpath de un nodo
 
@@ -293,8 +293,8 @@ Authorization: Bearer {{superAdminToken}}
 Si necesitas empezar de cero:
 
 ```bash
-npm run migration:revert
-npm run migration:run
+pnpm migration:revert
+pnpm migration:run
 ```
 
 ---
@@ -370,20 +370,22 @@ Content-Type: application/json
 
 Usa esta checklist para verificar que todo funciona:
 
-- [ ] SETUP: Crear estructura completa (7 requests)
-- [ ] AUTH: Obtener 3 tokens (SUPER_ADMIN, OU_ADMIN, USER)
-- [ ] FASE 2: Validar RBAC (7 requests)
-  - [ ] 4 requests sin token → 401
-  - [ ] 3 requests USER sin permisos → 403
-- [ ] FASE 3: Validar Hierarchy (6 requests)
-  - [ ] SUPER_ADMIN accede a todo ✅
-  - [ ] OU_ADMIN limitado a su scope ✅
-  - [ ] USER solo lectura ✅
-- [ ] FASE 4: Validar Anti-Escalation (6 requests)
-  - [ ] OU_ADMIN no puede escalar ✅
-  - [ ] OU_ADMIN no puede crear fuera ✅
-- [ ] FASE 5: Validar Audit (3 requests)
-  - [ ] Operaciones se ejecutan correctamente ✅
+- ✅ SETUP: Crear estructura completa (7 requests)
+- ✅ AUTH: Obtener 3 tokens (SUPER_ADMIN, OU_ADMIN, USER)
+- ✅ FASE 2: Validar RBAC (7/7 requests) - **100% Completado**
+  - ✅ 4 requests sin token → 401
+  - ✅ 3 requests USER sin permisos → 403
+- ✅ FASE 3: Validar Hierarchy (6/6 requests) - **100% Completado**
+  - ✅ SUPER_ADMIN accede a todo
+  - ✅ OU_ADMIN limitado a su scope
+  - ✅ USER solo lectura
+- ✅ FASE 4: Validar Anti-Escalation (6/6 requests) - **100% Completado**
+  - ✅ OU_ADMIN no puede escalar
+  - ✅ OU_ADMIN no puede crear fuera
+- ✅ FASE 5: Validar Audit (3/3 requests) - **100% Completado**
+  - ✅ Operaciones se ejecutan correctamente
+
+**🎉 Estado: TODAS LAS FASES COMPLETADAS (22/22 tests E2E pasando)**
 
 ---
 
