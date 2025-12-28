@@ -1,9 +1,10 @@
 // src/directory/directory.controller.ts
-import { Controller, Get, Post, Body, Param, Query, ParseIntPipe, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, ParseIntPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 
-import { DirectoryService } from './directory.service';
-import { CreateNodeDto } from './dto/create-node.dto';
+import { DirectoryService } from '@/directory/directory.service';
+import { CreateNodeDto } from '@/directory/dto/create-node.dto';
+import { DirectoryNode } from '@/directory/entities/directory-node.entity';
 
 @ApiTags('Directory')
 @Controller('directory')
@@ -18,7 +19,7 @@ export class DirectoryController {
     status: 201,
     description: 'Node successfully created',
   })
-  create(@Body() createNodeDto: CreateNodeDto) {
+  create(@Body() createNodeDto: CreateNodeDto): Promise<DirectoryNode> {
     return this.directoryService.create(createNodeDto);
   }
 

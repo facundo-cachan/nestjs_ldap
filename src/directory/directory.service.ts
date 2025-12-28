@@ -54,7 +54,8 @@ export class DirectoryService {
     }
 
     // Al guardar, TypeORM genera el mpath (ej: "1.5.12.")
-    return await this.nodeRepository.save(newNode);
+    // return await this.nodeRepository.save(newNode);
+    return newNode;
   }
 
   /**

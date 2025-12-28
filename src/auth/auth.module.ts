@@ -14,7 +14,7 @@ import { HierarchicalPermissionsGuard } from './guards/hierarchical-permissions.
     DirectoryModule, // Importamos para poder usar DirectoryService
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'secreto_super_seguro', // Mover a .env
+      secret: String(process.env.JWT_SECRET), // Mover a .env
       signOptions: { expiresIn: '1h' }, // El token expira en 1 hora
     }),
   ],

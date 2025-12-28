@@ -3,6 +3,7 @@
 
 @host = {{$dotenv API_URL}}
 @token = {{$dotenv USER_SESSION_JWT_TOKEN}}
+@gustavoToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJndXN0YXZvIiwiaWQiOjQsInJvbGUiOiJTVVBFUl9BRE1JTiIsImlhdCI6MTc2Njg4Mzg4MiwiZXhwIjoxNzY2ODg3NDgyfQ.hiLrkoSsqDd8cxdOSxMi8Zsmc5di3sL6x4QWRKVS66c
 
 ###############################################################################
 # 1️⃣ CREAR ESTRUCTURA ORGANIZACIONAL
@@ -13,10 +14,10 @@ POST {{host}}/directory HTTP/1.1
 Content-Type: application/json
 
 {
-  "name": "com",
+  "name": "ansv",
   "type": "DC",
   "attributes": {
-    "description": "Root domain"
+    "description": "ANSV"
   }
 }
 
@@ -25,12 +26,12 @@ POST {{host}}/directory HTTP/1.1
 Content-Type: application/json
 
 {
-  "name": "mycompany",
+  "name": "CABA",
   "type": "OU",
   "parentId": 1,
   "attributes": {
-    "fullName": "My Company Inc.",
-    "location": "Argentina"
+    "fullName": "Licencias",
+    "location": "Buenos Aires"
   }
 }
 
@@ -39,26 +40,12 @@ POST {{host}}/directory HTTP/1.1
 Content-Type: application/json
 
 {
-  "name": "engineering",
+  "name": "IT",
   "type": "OU",
   "parentId": 2,
   "attributes": {
-    "fullName": "Engineering Department",
-    "manager": "tech-lead@company.com"
-  }
-}
-
-### 1.4 Crear Departamento de Ventas
-POST {{host}}/directory HTTP/1.1
-Content-Type: application/json
-
-{
-  "name": "sales",
-  "type": "OU",
-  "parentId": 2,
-  "attributes": {
-    "fullName": "Sales Department",
-    "manager": "sales-director@company.com"
+    "fullName": "IT Department",
+    "manager": "it@licencias-caba.org"
   }
 }
 
@@ -71,69 +58,15 @@ POST {{host}}/directory HTTP/1.1
 Content-Type: application/json
 
 {
-  "name": "superadmin",
+  "name": "gustavo",
   "type": "USER",
   "password": "SuperSecure123!",
-  "parentId": 2,
+  "parentId": 3, // Departamento al que pertence el USER, en este caso IT
   "attributes": {
-    "email": "admin@company.com",
-    "firstName": "Admin",
-    "lastName": "System",
+    "email": "gustavo@licencias-caba.org",
+    "firstName": "Gustavo",
+    "lastName": "Garcia",
     "isSuperAdmin": true
-  }
-}
-
-### 2.2 Crear Administrador de Engineering (OU_ADMIN)
-POST {{host}}/directory HTTP/1.1
-Content-Type: application/json
-
-{
-  "name": "eng.admin",
-  "type": "USER",
-  "password": "EngAdmin123!",
-  "parentId": 3,
-  "attributes": {
-    "email": "eng.admin@company.com",
-    "firstName": "Engineering",
-    "lastName": "Admin",
-    "isAdmin": true,
-    "adminOf": "3",
-    "department": "Engineering"
-  }
-}
-
-### 2.3 Crear Usuario en Engineering
-POST {{host}}/directory HTTP/1.1
-Content-Type: application/json
-
-{
-  "name": "juan.perez",
-  "type": "USER",
-  "password": "UserPass123!",
-  "parentId": 3,
-  "attributes": {
-    "email": "juan.perez@company.com",
-    "firstName": "Juan",
-    "lastName": "Pérez",
-    "position": "Backend Developer",
-    "phone": "+54 11 1234-5678"
-  }
-}
-
-### 2.4 Crear Usuario en Sales
-POST {{host}}/directory HTTP/1.1
-Content-Type: application/json
-
-{
-  "name": "ana.garcia",
-  "type": "USER",
-  "password": "UserPass123!",
-  "parentId": 4,
-  "attributes": {
-    "email": "ana.garcia@company.com",
-    "firstName": "Ana",
-    "lastName": "García",
-    "position": "Sales Representative"
   }
 }
 
@@ -146,26 +79,8 @@ POST {{host}}/auth/login HTTP/1.1
 Content-Type: application/json
 
 {
-  "username": "superadmin",
+  "username": "gustavo",
   "password": "SuperSecure123!"
-}
-
-### 3.2 Login como OU_ADMIN (Engineering)
-POST {{host}}/auth/login HTTP/1.1
-Content-Type: application/json
-
-{
-  "username": "eng.admin",
-  "password": "EngAdmin123!"
-}
-
-### 3.3 Login como USER normal
-POST {{host}}/auth/login HTTP/1.1
-Content-Type: application/json
-
-{
-  "username": "juan.perez",
-  "password": "UserPass123!"
 }
 
 ###############################################################################
@@ -176,7 +91,7 @@ Content-Type: application/json
 GET {{host}}/directory/scope/4 HTTP/1.1
 Authorization: Bearer {{token}}
 
-### 4.2 SUPER_ADMIN: Crear usuario en cualquier lugar
+### 4.2 SUPER_ADMIN: Crear usuario en cualquier/ningun departamento/organización
 POST {{host}}/directory HTTP/1.1
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -184,7 +99,6 @@ Content-Type: application/json
 {
   "name": "new.user",
   "type": "USER",
-  "parentId": 4,
   "password": "pass123",
   "attributes": {
     "email": "new.user@company.com"

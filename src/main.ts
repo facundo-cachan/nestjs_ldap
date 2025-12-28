@@ -10,9 +10,13 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 import * as dotenv from 'dotenv';
 import { AppModule } from './app.module';
+
+import type { SwaggerCustomOptions } from '@nestjs/swagger/dist/interfaces';
 
 dotenv.config();
 const globalPrefix = '';
@@ -27,7 +31,14 @@ const config = new DocumentBuilder()
   .setVersion('1.0')
   .addBearerAuth()
   .build();
-
+const myCustom: SwaggerCustomOptions = {
+  customSiteTitle: 'Swagger dark mode',
+  customCss: readFileSync(join(__dirname, 'SwaggerDark.css'), 'utf8'),
+  swaggerOptions: {
+    docExpansion: 'none',
+    apisSorter: 'alpha',
+  },
+};
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -48,7 +59,7 @@ async function bootstrap() {
 
   // Configurar Swagger antes de iniciar el servidor
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
+  SwaggerModule.setup('docs', app, document, myCustom);
 
   await app.listen(port, host);
   Logger.log(`🚀 Aplicación corriendo en: ${host}:${port}`);
