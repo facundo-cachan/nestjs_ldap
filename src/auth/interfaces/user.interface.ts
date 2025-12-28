@@ -1,43 +1,15 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { DirectoryNode } from '@/directory/entities/directory-node.entity';
 
-import { Role } from '@/auth/enums/role.enum';
-import { NodeType } from '@/directory/entities/directory-node.entity';
-
+/**
+ * User credentials for login
+ */
 export interface UserCredentials {
   username: string;
   password: string;
 }
 
-export class TimeStamps {
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-@Entity()
-export class User extends TimeStamps {
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  @Column()
-  name: string;
-
-  @Column()
-  password: string;
-
-  @Column()
-  type: NodeType;
-
-  @Column()
-  role: Role;
-
-  @Column()
-  adminOfNodeId: number;
-
-  @Column()
-  attributes: {
-    isSuperAdmin?: boolean;
-    role?: Role;
-    adminOf?: boolean;
-    isAdmin?: boolean;
-  };
-}
+/**
+ * User type - alias for DirectoryNode when used in auth context
+ * This ensures type compatibility between DirectoryNode and User
+ */
+export type User = DirectoryNode;

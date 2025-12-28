@@ -2,12 +2,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 
-import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
-import { DirectoryModule } from '../directory/directory.module'; // Para buscar usuarios
-import { LocalStrategy } from './strategies/local.strategy';
-import { JwtStrategy } from './strategies/jwt.strategy';
-import { HierarchicalPermissionsGuard } from './guards/hierarchical-permissions.guard';
+import { AuthService } from '@/auth/auth.service';
+import { AuthController } from '@/auth/auth.controller';
+import { DirectoryModule } from '@/directory/directory.module'; // Para buscar usuarios
+import { LocalStrategy } from '@/auth/strategies/local.strategy';
+import { JwtStrategy } from '@/auth/strategies/jwt.strategy';
+import { HierarchicalPermissionsGuard } from '@/auth/guards/hierarchical-permissions.guard';
 
 @Module({
   imports: [
@@ -15,7 +15,9 @@ import { HierarchicalPermissionsGuard } from './guards/hierarchical-permissions.
     PassportModule,
     JwtModule.register({
       secret: String(process.env.JWT_SECRET), // Mover a .env
-      signOptions: { expiresIn: '1h' }, // El token expira en 1 hora
+      signOptions: {
+        expiresIn: process.env.NODE_ENV === 'test' ? '24h' : '1h', // Más tiempo para tests
+      },
     }),
   ],
   controllers: [AuthController],

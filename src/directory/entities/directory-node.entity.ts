@@ -12,6 +12,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { Role } from '@/auth/enums/role.enum';
 
 export enum NodeType {
   DC = 'DC',       // Domain Component (ej: com, google)
@@ -43,6 +44,18 @@ export class DirectoryNode {
   // JSONB permite guardar atributos flexibles sin alterar esquema (ideal LDAP)
   @Column({ type: 'jsonb', default: {} })
   attributes: Record<string, any>;
+
+  // Roles del usuario (RBAC) - Array de roles para soportar múltiples roles
+  @Column({
+    type: 'simple-array',
+    nullable: true,
+    default: null,
+  })
+  roles?: Role[];
+
+  // ID del nodo del cual este usuario es administrador (para OU_ADMIN)
+  @Column({ nullable: true })
+  adminOfNodeId?: number;
 
   @TreeChildren()
   children: DirectoryNode[];

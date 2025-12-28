@@ -44,25 +44,37 @@ export class AuthService {
    * Incluye información de roles para RBAC jerárquico.
    */
   async login(user: User) {
-  // NOTE: Determinar rol del usuario desde attributes o configuración
-    const role = this.getUserRole(user);
-    const adminOfNodeId = this.getAdminNodeId(user, role);
+    // NOTE: Necesitamos obtener el mpath del usuario desde la BD
+    // El objeto 'user' que viene del validateUser no incluye mpath
+    const fullUser = await this.directoryService.findOne(user.id);
+
+    if (!fullUser) {
+      throw new Error('User not found');
+    }
+
+    // Determinar rol del usuario desde la BD o attributes
+    const role = this.getUserRole(fullUser);
+    const roles = fullUser.roles || [role];
+    const adminOfNodeId = fullUser.adminOfNodeId || this.getAdminNodeId(fullUser, role);
 
     const payload: JwtPayload = {
-      sub: user.name,
-      id: user.id,
+      sub: fullUser.name,
+      id: fullUser.id,
       role,
+      roles,
       adminOfNodeId,
+      mpath: fullUser.mpath, // CRÍTICO: Incluir mpath para scope checking
     };
 
     return {
       access_token: this.jwtService.sign(payload),
       user: {
-        id: user.id,
-        username: user.name,
-        // type: user.type,
-        // role,
+        id: fullUser.id,
+        username: fullUser.name,
+        role,
+        roles,
         adminOfNodeId,
+        mpath: fullUser.mpath,
       },
     };
   }

@@ -12,7 +12,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'secreto_super_seguro',
+      secretOrKey: String(process.env.JWT_SECRET || 'secreto_super_seguro'),
     });
   }
 
@@ -21,7 +21,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * El payload es el contenido decodificado del JWT.
    */
   async validate(payload: any) {
-    // Retornamos el usuario que será adjuntado a req.user
-    return { userId: payload.sub, username: payload.username, type: payload.type };
+    // Retornamos el usuario completo que será adjuntado a req.user
+    // Incluimos TODOS los datos del JWT para que estén disponibles en los guards
+    return {
+      userId: payload.sub,
+      username: payload.sub,
+      id: payload.id,
+      role: payload.role,
+      roles: payload.roles,
+      mpath: payload.mpath,
+      adminOfNodeId: payload.adminOfNodeId,
+    };
   }
 }

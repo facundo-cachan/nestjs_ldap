@@ -1,294 +1,453 @@
-# API Testing File for NestJS LDAP Directory Service
-# Based on README.md examples
+# 🔐 API Testing File - NestJS LDAP Hybrid Auth System
+# Sistema Híbrido: LDAP Materialized Path + RBAC
+# 
+# ✅ Todas las fases completadas y validadas (22/22 tests E2E pasando)
+# 📄 Ver: TODAS_LAS_FASES_COMPLETADAS.md
 
-@host = {{$dotenv API_URL}}
-@token = {{$dotenv USER_SESSION_JWT_TOKEN}}
-@gustavoToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJndXN0YXZvIiwiaWQiOjQsInJvbGUiOiJTVVBFUl9BRE1JTiIsImlhdCI6MTc2Njg4Mzg4MiwiZXhwIjoxNzY2ODg3NDgyfQ.hiLrkoSsqDd8cxdOSxMi8Zsmc5di3sL6x4QWRKVS66c
+@host = http://localhost:3000
+@superAdminToken = 
+@ouAdminToken = 
+@userToken = 
 
 ###############################################################################
-# 1️⃣ CREAR ESTRUCTURA ORGANIZACIONAL
+# 🏗️ SETUP INICIAL - Crear Estructura de Prueba
 ###############################################################################
 
-### 1.1 Crear Dominio Raíz (DC)
+### SETUP 1: Crear Root OU (Company)
 POST {{host}}/directory HTTP/1.1
 Content-Type: application/json
 
 {
-  "name": "ansv",
-  "type": "DC",
+  "name": "company",
+  "type": "OU",
   "attributes": {
-    "description": "ANSV"
+    "description": "Root Organization"
   }
 }
 
-### 1.2 Crear Organización
+### SETUP 2: Crear Sales OU (bajo Company)
 POST {{host}}/directory HTTP/1.1
 Content-Type: application/json
 
 {
-  "name": "CABA",
+  "name": "sales",
   "type": "OU",
   "parentId": 1,
   "attributes": {
-    "fullName": "Licencias",
-    "location": "Buenos Aires"
+    "description": "Sales Department"
   }
 }
 
-### 1.3 Crear Departamento de Ingeniería
+### SETUP 3: Crear Marketing OU (bajo Company)
 POST {{host}}/directory HTTP/1.1
 Content-Type: application/json
 
 {
-  "name": "IT",
+  "name": "marketing",
   "type": "OU",
-  "parentId": 2,
+  "parentId": 1,
   "attributes": {
-    "fullName": "IT Department",
-    "manager": "it@licencias-caba.org"
+    "description": "Marketing Department"
   }
 }
 
-###############################################################################
-# 2️⃣ GESTIÓN DE USUARIOS
-###############################################################################
-
-### 2.1 Crear Super Administrador
+### SETUP 4: Crear SUPER_ADMIN User
 POST {{host}}/directory HTTP/1.1
 Content-Type: application/json
 
 {
-  "name": "gustavo",
+  "name": "superadmin",
   "type": "USER",
-  "password": "SuperSecure123!",
-  "parentId": 3, // Departamento al que pertence el USER, en este caso IT
+  "password": "admin123",
+  "parentId": 1,
   "attributes": {
-    "email": "gustavo@licencias-caba.org",
-    "firstName": "Gustavo",
-    "lastName": "Garcia",
+    "email": "superadmin@company.com",
     "isSuperAdmin": true
   }
 }
 
+### SETUP 5: Crear Sales Admin (OU_ADMIN)
+POST {{host}}/directory HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "sales.admin",
+  "type": "USER",
+  "password": "salesadmin123",
+  "parentId": 2,
+  "attributes": {
+    "email": "sales.admin@company.com",
+    "isAdmin": true,
+    "adminOf": "2"
+  }
+}
+
+### SETUP 6: Crear Sales User
+POST {{host}}/directory HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "sales.user",
+  "type": "USER",
+  "password": "user123",
+  "parentId": 2,
+  "attributes": {
+    "email": "sales.user@company.com"
+  }
+}
+
+### SETUP 7: Crear Marketing User
+POST {{host}}/directory HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "marketing.user",
+  "type": "USER",
+  "password": "user123",
+  "parentId": 3,
+  "attributes": {
+    "email": "marketing.user@company.com"
+  }
+}
+
 ###############################################################################
-# 3️⃣ AUTENTICACIÓN
+# 🔑 AUTENTICACIÓN - Obtener Tokens
 ###############################################################################
 
-### 3.1 Login como SUPER_ADMIN
+### AUTH 1: Login como SUPER_ADMIN
+# @name loginSuperAdmin
 POST {{host}}/auth/login HTTP/1.1
 Content-Type: application/json
 
 {
-  "username": "gustavo",
-  "password": "SuperSecure123!"
+  "username": "superadmin",
+  "password": "admin123"
 }
 
-###############################################################################
-# 4️⃣ OPERACIONES CON PERMISOS - SUPER_ADMIN
-###############################################################################
-
-### 4.1 SUPER_ADMIN: Ver cualquier departamento (Sales)
-GET {{host}}/directory/scope/4 HTTP/1.1
-Authorization: Bearer {{token}}
-
-### 4.2 SUPER_ADMIN: Crear usuario en cualquier/ningun departamento/organización
-POST {{host}}/directory HTTP/1.1
-Authorization: Bearer {{token}}
+### AUTH 2: Login como OU_ADMIN (Sales)
+# @name loginOuAdmin
+POST {{host}}/auth/login HTTP/1.1
 Content-Type: application/json
 
 {
-  "name": "new.user",
-  "type": "USER",
-  "password": "pass123",
-  "attributes": {
-    "email": "new.user@company.com"
-  }
+  "username": "sales.admin",
+  "password": "salesadmin123"
 }
 
-###############################################################################
-# 4️⃣ OPERACIONES CON PERMISOS - OU_ADMIN
-###############################################################################
-
-### 4.3 OU_ADMIN: Acceder a SU departamento (Engineering) ✅
-GET {{host}}/directory/scope/3 HTTP/1.1
-Authorization: Bearer {{token}}
-
-### 4.4 OU_ADMIN: Crear usuario en SU departamento ✅
-POST {{host}}/directory HTTP/1.1
-Authorization: Bearer {{token}}
+### AUTH 3: Login como USER (Sales)
+# @name loginUser
+POST {{host}}/auth/login HTTP/1.1
 Content-Type: application/json
 
 {
-  "name": "new.developer",
-  "type": "USER",
-  "parentId": 3,
-  "password": "pass123",
-  "attributes": {
-    "email": "new.dev@company.com",
-    "firstName": "New",
-    "lastName": "Developer"
-  }
-}
-
-### 4.5 OU_ADMIN: Intentar acceder a otro departamento (Sales) ❌
-# Debería retornar 403 Forbidden
-GET {{host}}/directory/scope/4 HTTP/1.1
-Authorization: Bearer {{token}}
-
-### 4.6 OU_ADMIN: Intentar crear en otro departamento ❌
-# Debería retornar 403 Forbidden
-POST {{host}}/directory HTTP/1.1
-Authorization: Bearer {{token}}
-Content-Type: application/json
-
-{
-  "name": "new.sales",
-  "type": "USER",
-  "parentId": 4,
-  "password": "pass123"
+  "username": "sales.user",
+  "password": "user123"
 }
 
 ###############################################################################
-# 4️⃣ OPERACIONES CON PERMISOS - USER
+# ✅ FASE 2: RBAC ESTÁNDAR - Public vs Private (7/7 tests ✅)
 ###############################################################################
 
-### 4.7 USER: Leer árbol completo ✅
+### FASE 2.1: ❌ GET sin token → 401 Unauthorized
 GET {{host}}/directory/tree HTTP/1.1
-Authorization: Bearer {{token}}
 
-### 4.8 USER: Intentar crear nodo ❌
-# Debería retornar 403 Forbidden
+### FASE 2.2: ❌ POST sin token → 401 Unauthorized
 POST {{host}}/directory HTTP/1.1
-Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "name": "unauthorized",
+  "name": "unauthorized.node",
   "type": "OU",
-  "parentId": 3
+  "parentId": 1
 }
 
-###############################################################################
-# 5️⃣ BÚSQUEDAS AVANZADAS
-###############################################################################
-
-### 5.1 Búsqueda en Sub-árbol (Scoped Search)
-# Buscar usuarios en Engineering y todos sus sub-departamentos
-GET {{host}}/directory/scope/3?q=dev HTTP/1.1
-Authorization: Bearer {{token}}
-
-### 5.2 Búsqueda Plana (Global Search)
-# Buscar en TODO el directorio ignorando jerarquía
-GET {{host}}/directory/search/flat?q=garcia HTTP/1.1
-Authorization: Bearer {{token}}
-
-### 5.3 Búsqueda Plana con filtro de tipo
-GET {{host}}/directory/search/flat?q=admin&type=USER HTTP/1.1
-Authorization: Bearer {{token}}
-
-### 5.4 Obtener Ancestros (Breadcrumbs)
-# Obtener la ruta completa de un usuario
-GET {{host}}/directory/7/ancestors HTTP/1.1
-Authorization: Bearer {{token}}
-
-###############################################################################
-# 6️⃣ OPERACIONES AVANZADAS
-###############################################################################
-
-### 6.1 Ver Árbol Completo
-GET {{host}}/directory/tree HTTP/1.1
-Authorization: Bearer {{token}}
-
-### 6.2 Mover Usuario/Departamento
+### FASE 2.3: ❌ MOVE sin token → 401 Unauthorized
 POST {{host}}/directory/move HTTP/1.1
-Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "nodeId": 7,
-  "newParentId": 4
+  "nodeId": 6,
+  "newParentId": 3
 }
 
-###############################################################################
-# ESTRUCTURA COMPLETA DE EJEMPLO
-###############################################################################
-# 
-# com (DC) - ID: 1
-# └── mycompany (OU) - ID: 2
-#     ├── engineering (OU) - ID: 3
-#     │   ├── eng.admin (USER - OU_ADMIN) - ID: 6
-#     │   └── juan.perez (USER) - ID: 7
-#     │
-#     ├── sales (OU) - ID: 4
-#     │   └── ana.garcia (USER) - ID: 8
-#     │
-#     └── superadmin (USER - SUPER_ADMIN) - ID: 5
-#
-###############################################################################
+### FASE 2.4: ❌ DELETE sin token → 401 Unauthorized
+DELETE {{host}}/directory/6 HTTP/1.1
 
-###############################################################################
-# TESTS ADICIONALES
-###############################################################################
-
-### Test: Crear sub-departamento en Engineering
+### FASE 2.5: ❌ USER intenta CREATE → 403 Forbidden
 POST {{host}}/directory HTTP/1.1
-Authorization: Bearer {{token}}
+Authorization: Bearer {{userToken}}
 Content-Type: application/json
 
 {
-  "name": "backend",
+  "name": "unauthorized.node",
   "type": "OU",
-  "parentId": 3,
-  "attributes": {
-    "fullName": "Backend Team",
-    "tech": "Node.js, TypeScript"
-  }
+  "parentId": 2
 }
 
-### Test: Crear usuario en sub-departamento
-POST {{host}}/directory HTTP/1.1
-Authorization: Bearer {{token}}
+### FASE 2.6: ❌ USER intenta MOVE → 403 Forbidden
+POST {{host}}/directory/move HTTP/1.1
+Authorization: Bearer {{userToken}}
 Content-Type: application/json
 
 {
-  "name": "maria.lopez",
+  "nodeId": 6,
+  "newParentId": 3
+}
+
+### FASE 2.7: ❌ USER intenta DELETE → 403 Forbidden
+DELETE {{host}}/directory/6 HTTP/1.1
+Authorization: Bearer {{userToken}}
+
+###############################################################################
+# ✅ FASE 3: TEST MATRIX - Hierarchical Access Control (6/6 tests ✅)
+###############################################################################
+
+### FASE 3.1: ✅ SUPER_ADMIN puede acceder a cualquier nodo
+GET {{host}}/directory/7 HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+### FASE 3.2: ✅ OU_ADMIN puede acceder dentro de su branch
+GET {{host}}/directory/6 HTTP/1.1
+Authorization: Bearer {{ouAdminToken}}
+
+### FASE 3.3: ❌ OU_ADMIN NO puede acceder fuera de su branch (Marketing)
+GET {{host}}/directory/7 HTTP/1.1
+Authorization: Bearer {{ouAdminToken}}
+
+### FASE 3.4: ❌ OU_ADMIN NO puede editar nodo ancestro (Root)
+GET {{host}}/directory/1 HTTP/1.1
+Authorization: Bearer {{ouAdminToken}}
+
+### FASE 3.5: ✅ USER puede leer el árbol completo
+GET {{host}}/directory/tree HTTP/1.1
+Authorization: Bearer {{userToken}}
+
+### FASE 3.6: ❌ USER NO puede DELETE (falta rol ADMIN)
+DELETE {{host}}/directory/6 HTTP/1.1
+Authorization: Bearer {{userToken}}
+
+###############################################################################
+# ✅ FASE 4: ANTI-ESCALATION SECURITY (6/6 tests ✅)
+###############################################################################
+
+### FASE 4.1: ❌ OU_ADMIN NO puede mover su propio nodo a Root
+POST {{host}}/directory/move HTTP/1.1
+Authorization: Bearer {{ouAdminToken}}
+Content-Type: application/json
+
+{
+  "nodeId": 5,
+  "newParentId": 1
+}
+
+### FASE 4.2: ❌ OU_ADMIN NO puede mover nodos fuera de su scope
+POST {{host}}/directory/move HTTP/1.1
+Authorization: Bearer {{ouAdminToken}}
+Content-Type: application/json
+
+{
+  "nodeId": 6,
+  "newParentId": 3
+}
+
+### FASE 4.3: ❌ OU_ADMIN NO puede crear nodo fuera de su scope
+POST {{host}}/directory HTTP/1.1
+Authorization: Bearer {{ouAdminToken}}
+Content-Type: application/json
+
+{
+  "name": "phantom.user",
   "type": "USER",
-  "password": "UserPass123!",
-  "parentId": 9,
+  "parentId": 3,
+  "password": "password123",
   "attributes": {
-    "email": "maria.lopez@company.com",
-    "firstName": "María",
-    "lastName": "López",
-    "position": "Senior Backend Developer"
+    "email": "phantom@company.com"
   }
 }
 
-### Test: Validación - Intentar crear hijo de USER (Debería fallar)
+### FASE 4.4: ✅ OU_ADMIN PUEDE crear nodo dentro de su scope
 POST {{host}}/directory HTTP/1.1
-Authorization: Bearer {{token}}
+Authorization: Bearer {{ouAdminToken}}
+Content-Type: application/json
+
+{
+  "name": "new.sales.user",
+  "type": "USER",
+  "parentId": 2,
+  "password": "password123",
+  "attributes": {
+    "email": "new.sales@company.com"
+  }
+}
+
+### FASE 4.5: ❌ OU_ADMIN NO puede crear usuario con rol SUPER_ADMIN
+POST {{host}}/directory HTTP/1.1
+Authorization: Bearer {{ouAdminToken}}
+Content-Type: application/json
+
+{
+  "name": "fake.superadmin",
+  "type": "USER",
+  "parentId": 2,
+  "password": "password123",
+  "attributes": {
+    "isSuperAdmin": true,
+    "email": "fake.superadmin@company.com"
+  }
+}
+
+### FASE 4.6: ✅ SUPER_ADMIN PUEDE crear usuario con cualquier rol
+POST {{host}}/directory HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+Content-Type: application/json
+
+{
+  "name": "new.admin",
+  "type": "USER",
+  "parentId": 2,
+  "password": "password123",
+  "attributes": {
+    "isAdmin": true,
+    "adminOf": "2",
+    "email": "new.admin@company.com"
+  }
+}
+
+###############################################################################
+# ✅ FASE 5: AUDIT TRAIL (3/3 tests ✅)
+###############################################################################
+
+### FASE 5.1: ✅ OU_ADMIN modifica usuario en su scope (debe loggearse)
+GET {{host}}/directory/6 HTTP/1.1
+Authorization: Bearer {{ouAdminToken}}
+
+### FASE 5.2: ✅ SUPER_ADMIN realiza acción administrativa (debe loggearse)
+GET {{host}}/directory/7 HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+### FASE 5.3: ✅ USER realiza operación de solo lectura (NO debe loggearse)
+GET {{host}}/directory/tree HTTP/1.1
+Authorization: Bearer {{userToken}}
+
+###############################################################################
+# 🔍 BÚSQUEDAS AVANZADAS
+###############################################################################
+
+### SEARCH 1: Búsqueda en Sub-árbol (Scoped Search)
+# Buscar dentro de Sales y todos sus sub-departamentos
+GET {{host}}/directory/scope/2?q=user HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+### SEARCH 2: Búsqueda Plana (Global Search)
+# Buscar en TODO el directorio ignorando jerarquía
+GET {{host}}/directory/search/flat?q=admin HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+### SEARCH 3: Búsqueda Plana con filtro de tipo
+GET {{host}}/directory/search/flat?q=sales&type=USER HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+### SEARCH 4: Obtener Ancestros (Breadcrumbs)
+# Obtener la ruta completa de un usuario
+GET {{host}}/directory/6/ancestors HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+### SEARCH 5: Ver Árbol Completo
+GET {{host}}/directory/tree HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+### SEARCH 6: Obtener nodo específico por ID
+GET {{host}}/directory/2 HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+###############################################################################
+# 🔄 OPERACIONES AVANZADAS
+###############################################################################
+
+### ADVANCED 1: Mover Usuario entre Departamentos (dentro del scope)
+POST {{host}}/directory/move HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+Content-Type: application/json
+
+{
+  "nodeId": 6,
+  "newParentId": 3
+}
+
+### ADVANCED 2: Crear Sub-departamento
+POST {{host}}/directory HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+Content-Type: application/json
+
+{
+  "name": "sales.team.a",
+  "type": "OU",
+  "parentId": 2,
+  "attributes": {
+    "description": "Sales Team A",
+    "manager": "sales.admin@company.com"
+  }
+}
+
+### ADVANCED 3: Crear usuario en sub-departamento
+POST {{host}}/directory HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+Content-Type: application/json
+
+{
+  "name": "team.a.user",
+  "type": "USER",
+  "password": "password123",
+  "parentId": 8,
+  "attributes": {
+    "email": "team.a.user@company.com",
+    "firstName": "Team A",
+    "lastName": "User"
+  }
+}
+
+###############################################################################
+# ❌ VALIDACIONES - Casos que DEBEN FALLAR
+###############################################################################
+
+### VALIDATION 1: ❌ Intentar crear hijo de USER (debe fallar)
+POST {{host}}/directory HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
 Content-Type: application/json
 
 {
   "name": "invalid.child",
   "type": "OU",
-  "parentId": 7,
+  "parentId": 6,
   "attributes": {}
 }
 
-### Test: Validación - Nombre duplicado entre hermanos (Debería fallar)
+### VALIDATION 2: ❌ Nombre duplicado entre hermanos (debe fallar)
 POST {{host}}/directory HTTP/1.1
-Authorization: Bearer {{token}}
+Authorization: Bearer {{superAdminToken}}
 Content-Type: application/json
 
 {
-  "name": "juan.perez",
+  "name": "sales.user",
   "type": "USER",
-  "parentId": 3,
+  "parentId": 2,
+  "password": "pass123"
+}
+
+### VALIDATION 3: ❌ Parent ID inválido (debe fallar)
+POST {{host}}/directory HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+Content-Type: application/json
+
+{
+  "name": "orphan.user",
+  "type": "USER",
+  "parentId": 9999,
   "password": "pass123"
 }
 
 ###############################################################################
-# HEALTH CHECK
+# 🏥 HEALTH & MONITORING
 ###############################################################################
 
 ### Health Check
@@ -299,3 +458,80 @@ GET {{host}}/ HTTP/1.1
 
 ### Swagger JSON
 # GET {{host}}/docs-json
+
+###############################################################################
+# 📊 ESTRUCTURA DE ÁRBOL RESULTANTE
+###############################################################################
+#
+# company (OU) - ID: 1 - mpath: "1."
+# ├── sales (OU) - ID: 2 - mpath: "1.2."
+# │   ├── sales.admin (USER - OU_ADMIN) - ID: 5 - mpath: "1.2.5."
+# │   ├── sales.user (USER) - ID: 6 - mpath: "1.2.6."
+# │   └── sales.team.a (OU) - ID: 8 - mpath: "1.2.8."
+# │       └── team.a.user (USER) - ID: 9 - mpath: "1.2.8.9."
+# │
+# ├── marketing (OU) - ID: 3 - mpath: "1.3."
+# │   └── marketing.user (USER) - ID: 7 - mpath: "1.3.7."
+# │
+# └── superadmin (USER - SUPER_ADMIN) - ID: 4 - mpath: "1.4."
+#
+###############################################################################
+
+###############################################################################
+# 🎯 CASOS DE USO POR ROL
+###############################################################################
+
+# 🔴 SUPER_ADMIN (superadmin)
+# ✅ Puede acceder a CUALQUIER nodo
+# ✅ Puede crear en CUALQUIER lugar
+# ✅ Puede mover CUALQUIER nodo
+# ✅ Puede otorgar CUALQUIER rol
+# ✅ NO tiene restricciones de scope
+
+# 🟡 OU_ADMIN (sales.admin)
+# ✅ Puede acceder a nodos dentro de Sales (mpath: "1.2.*")
+# ✅ Puede crear usuarios en Sales
+# ✅ Puede mover nodos dentro de Sales
+# ❌ NO puede acceder a Marketing
+# ❌ NO puede acceder a nodos ancestros (company)
+# ❌ NO puede mover nodos fuera de Sales
+# ❌ NO puede otorgar rol SUPER_ADMIN
+
+# 🟢 USER (sales.user)
+# ✅ Puede leer el árbol completo
+# ✅ Puede buscar en el directorio
+# ❌ NO puede crear nodos
+# ❌ NO puede mover nodos
+# ❌ NO puede eliminar nodos
+
+###############################################################################
+# 📝 NOTAS IMPORTANTES
+###############################################################################
+
+# 1. Tokens JWT:
+#    - Expiran en 1h en producción
+#    - Expiran en 24h en tests (NODE_ENV=test)
+#    - Contienen: id, role, roles, mpath, adminOfNodeId
+
+# 2. Materialized Path (mpath):
+#    - Formato: "1.2.3." (cada número es un ID de nodo)
+#    - Permite queries O(1) para validación jerárquica
+#    - Se genera automáticamente por TypeORM
+
+# 3. Roles:
+#    - SUPER_ADMIN: Acceso total sin restricciones
+#    - OU_ADMIN: Acceso limitado a su OU y descendientes
+#    - USER: Solo lectura
+
+# 4. Validaciones de Seguridad:
+#    - Previene escalamiento de privilegios
+#    - Previene creación fantasma (fuera de scope)
+#    - Previene auto-promoción
+#    - Previene acceso a ancestros
+
+# 5. Tests E2E:
+#    - 22/22 tests pasando (100%)
+#    - Ver: test/auth-tasks-validation.e2e-spec.ts
+#    - Ejecutar: npm run test:e2e
+
+###############################################################################

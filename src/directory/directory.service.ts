@@ -3,8 +3,8 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { TreeRepository } from 'typeorm'; // OJO: Usamos TreeRepository, no Repository normal
 
-import { DirectoryNode, NodeType } from './entities/directory-node.entity';
-import { CreateNodeDto } from './dto/create-node.dto';
+import { DirectoryNode, NodeType } from '@/directory/entities/directory-node.entity';
+import { CreateNodeDto } from '@/directory/dto/create-node.dto';
 
 @Injectable()
 export class DirectoryService {
@@ -54,8 +54,7 @@ export class DirectoryService {
     }
 
     // Al guardar, TypeORM genera el mpath (ej: "1.5.12.")
-    // return await this.nodeRepository.save(newNode);
-    return newNode;
+    return await this.nodeRepository.save(newNode);
   }
 
   /**
@@ -132,6 +131,34 @@ export class DirectoryService {
       .addSelect('node.password') // Incluimos explícitamente el password
       .where('node.name = :username', { username })
       .getOne();
+  }
+
+  /**
+   * Busca un nodo por su ID.
+   * Incluye el mpath para scope checking.
+   */
+  async findOne(id: number): Promise<DirectoryNode | null> {
+    // Usar getRawOne para obtener TODAS las columnas incluyendo mpath
+    const raw = await this.nodeRepository
+      .createQueryBuilder('node')
+      .where('node.id = :id', { id })
+      .getRawOne();
+
+    if (!raw) return null;
+
+    // Mapear el resultado raw a DirectoryNode
+    const node = new DirectoryNode();
+    node.id = raw.node_id;
+    node.name = raw.node_name;
+    node.type = raw.node_type;
+    node.attributes = raw.node_attributes;
+    node.roles = raw.node_roles;
+    node.adminOfNodeId = raw.node_adminOfNodeId;
+    node.mpath = raw.node_mpath;  // ¡Aquí está el mpath!
+    node.createdAt = raw.node_createdAt;
+    node.updatedAt = raw.node_updatedAt;
+
+    return node;
   }
 
   /**
