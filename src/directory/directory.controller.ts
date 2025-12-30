@@ -1,6 +1,7 @@
 // src/directory/directory.controller.ts
-import { Controller, Get, Post, Body, Param, Query, ParseIntPipe, UseGuards, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, ParseIntPipe, UseGuards, Delete, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { Request } from 'express';
 
 import { DirectoryService } from '@/directory/directory.service';
 import { CreateNodeDto } from '@/directory/dto/create-node.dto';
@@ -10,13 +11,20 @@ import { RolesGuard } from '@/auth/guards/roles.guard';
 import { HierarchyGuard } from '@/auth/guards/hierarchy.guard';
 import { Roles } from '@/auth/decorators/roles.decorator';
 import { Role } from '@/auth/enums/role.enum';
+import { CurrentUser } from '@/auth/decorators/current-user.decorator';
+import { AuditService } from '@/audit/audit.service';
+import { AntiEscalationService } from '@/auth/services/anti-escalation.service';
 
 @ApiTags('Directory')
 @Controller('directory')
 @UseGuards(JwtAuthGuard, RolesGuard, HierarchyGuard) // ORDEN CRÍTICO: Auth -> Roles -> Hierarchy
 @ApiBearerAuth()
 export class DirectoryController {
-  constructor(private readonly directoryService: DirectoryService) { }
+  constructor(
+    private readonly directoryService: DirectoryService,
+    private readonly auditService: AuditService,
+    private readonly antiEscalationService: AntiEscalationService,
+  ) { }
 
   @Post()
   @Roles(Role.OU_ADMIN, Role.SUPER_ADMIN) // Solo admins pueden crear nodos
@@ -26,8 +34,35 @@ export class DirectoryController {
     status: 201,
     description: 'Node successfully created',
   })
-  create(@Body() createNodeDto: CreateNodeDto): Promise<DirectoryNode> {
-    return this.directoryService.create(createNodeDto);
+  async create(
+    @Body() createNodeDto: CreateNodeDto,
+    @CurrentUser() user: any,
+    @Req() req: Request,
+  ): Promise<DirectoryNode> {
+    // Validar anti-escalamiento (Fase 4)
+    await this.antiEscalationService.validateNodeCreation(user, createNodeDto);
+
+    const node = await this.directoryService.create(createNodeDto);
+
+    // Registrar auditoría para creación de nodos
+    await this.auditService.log({
+      actorId: user.sub,
+      actorName: user.username,
+      actorRole: user.role,
+      action: 'CREATE',
+      targetId: node.id,
+      targetName: node.name,
+      targetType: node.type,
+      scope: user.mpath,
+      metadata: {
+        parentId: createNodeDto.parentId,
+        nodeType: createNodeDto.type,
+      },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
+    return node;
   }
 
   // Ejemplo: GET /directory/scope/5?q=juan
@@ -72,8 +107,30 @@ export class DirectoryController {
     status: 404,
     description: 'Node not found',
   })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.directoryService.findOne(id);
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: any,
+    @Req() req: Request,
+  ) {
+    const node = await this.directoryService.findOne(id);
+
+    // Registrar auditoría solo para admins (no para usuarios normales)
+    if (user.role === 'SUPER_ADMIN' || user.role === 'OU_ADMIN') {
+      await this.auditService.log({
+        actorId: user.sub,
+        actorName: user.username,
+        actorRole: user.role,
+        action: 'READ',
+        targetId: id,
+        targetName: node?.name || 'unknown',
+        targetType: node?.type || 'unknown',
+        scope: user.mpath,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      });
+    }
+
+    return node;
   }
 
   @Get(':id/ancestors')
@@ -118,11 +175,37 @@ export class DirectoryController {
     status: 200,
     description: 'Node moved successfully',
   })
-  moveNode(
+  async moveNode(
     @Body('nodeId', ParseIntPipe) nodeId: number,
     @Body('newParentId', ParseIntPipe) newParentId: number,
+    @CurrentUser() user: any,
+    @Req() req: Request,
   ) {
-    return this.directoryService.moveBranch(nodeId, newParentId);
+    // Validar anti-escalamiento (Fase 4)
+    await this.antiEscalationService.validateNodeMove(user, nodeId, newParentId);
+
+    const node = await this.directoryService.findOne(nodeId);
+    const result = await this.directoryService.moveBranch(nodeId, newParentId);
+
+    // Registrar auditoría para movimiento de nodos
+    await this.auditService.log({
+      actorId: user.sub,
+      actorName: user.username,
+      actorRole: user.role,
+      action: 'MOVE',
+      targetId: nodeId,
+      targetName: node?.name || 'unknown',
+      targetType: node?.type || 'unknown',
+      scope: user.mpath,
+      metadata: {
+        oldParentId: node?.parent?.id,
+        newParentId,
+      },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
+    return result;
   }
 
   @Delete(':id')
@@ -141,7 +224,11 @@ export class DirectoryController {
     status: 404,
     description: 'Node not found',
   })
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: any,
+    @Req() req: Request,
+  ) {
     // Si llega aquí, es porque:
     // 1. Está logueado (JwtAuthGuard)
     // 2. Es Admin (RolesGuard)
@@ -150,6 +237,24 @@ export class DirectoryController {
     if (!node) {
       throw new Error('Node not found');
     }
+
+    // Registrar auditoría para eliminación de nodos
+    await this.auditService.log({
+      actorId: user.sub,
+      actorName: user.username,
+      actorRole: user.role,
+      action: 'DELETE',
+      targetId: id,
+      targetName: node.name,
+      targetType: node.type,
+      scope: user.mpath,
+      metadata: {
+        parentId: node.parent?.id,
+      },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
     // TODO: Implementar soft delete o hard delete según requerimientos
     return { message: 'Delete functionality to be implemented', nodeId: id };
   }

@@ -8,10 +8,11 @@ import { JwtModule } from '@nestjs/jwt';
 import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-redis-store';
 
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { DirectoryModule } from './directory/directory.module';
-import { AuthModule } from './auth/auth.module';
+import { AppController } from '@/app.controller';
+import { AppService } from '@/app.service';
+import { DirectoryModule } from '@/directory/directory.module';
+import { AuthModule } from '@/auth/auth.module';
+import { AuditModule } from '@/audit/audit.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { AuthModule } from './auth/auth.module';
     }),
     DirectoryModule,
     AuthModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [AppService],

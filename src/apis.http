@@ -535,3 +535,116 @@ GET {{host}}/ HTTP/1.1
 #    - Ejecutar: pnpm test:e2e
 
 ###############################################################################
+# 📊 SISTEMA DE AUDITORÍA - Consultar Logs (NUEVO)
+###############################################################################
+
+### AUDIT 1: Obtener logs por actor (usuario)
+# Ver todas las acciones realizadas por el Sales Admin
+GET {{host}}/audit/actor/5?limit=50 HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+### AUDIT 2: Obtener logs por objetivo (nodo)
+# Ver el historial completo de un usuario específico
+GET {{host}}/audit/target/6?limit=50 HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+### AUDIT 3: Obtener logs por tipo de acción
+# Ver todas las eliminaciones realizadas en el sistema
+GET {{host}}/audit/action/DELETE?limit=100 HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+### AUDIT 4: Obtener logs por tipo de acción - CREATE
+# Ver todas las creaciones realizadas
+GET {{host}}/audit/action/CREATE?limit=100 HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+### AUDIT 5: Obtener logs por tipo de acción - MOVE
+# Ver todos los movimientos de nodos
+GET {{host}}/audit/action/MOVE?limit=100 HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+### AUDIT 6: Obtener logs por scope (departamento)
+# Ver todas las acciones realizadas en Sales (mpath: 1.2.)
+GET {{host}}/audit/scope?path=1.2.&limit=50 HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+### AUDIT 7: Obtener logs por rango de fechas
+# Ver todas las acciones del último mes
+GET {{host}}/audit/date-range?startDate=2025-01-01&endDate=2025-01-31&limit=500 HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+### AUDIT 8: Obtener estadísticas de actividad de un usuario
+# Ver cuántas acciones de cada tipo realizó el Sales Admin
+GET {{host}}/audit/stats/5 HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+### AUDIT 9: OU_ADMIN puede ver logs de su departamento
+# Sales Admin puede ver logs de su scope
+GET {{host}}/audit/scope?path=1.2.&limit=50 HTTP/1.1
+Authorization: Bearer {{ouAdminToken}}
+
+### AUDIT 10: OU_ADMIN puede ver sus propias estadísticas
+GET {{host}}/audit/stats/5 HTTP/1.1
+Authorization: Bearer {{ouAdminToken}}
+
+###############################################################################
+# 📊 CASOS DE USO DEL SISTEMA DE AUDITORÍA
+###############################################################################
+
+# 🔍 Caso 1: Investigar quién modificó un usuario
+# Escenario: Un usuario reporta que su email fue cambiado sin su consentimiento
+# Solución: Ver el historial completo del usuario
+GET {{host}}/audit/target/6?limit=100 HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+# 🔍 Caso 2: Detectar eliminaciones sospechosas
+# Escenario: Quieres ver si algún admin está eliminando usuarios masivamente
+# Solución: Ver todas las eliminaciones y luego las estadísticas de cada admin
+GET {{host}}/audit/action/DELETE?limit=200 HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+# 🔍 Caso 3: Reporte de actividad mensual
+# Escenario: Necesitas generar un reporte de todas las acciones del mes
+# Solución: Consultar por rango de fechas
+GET {{host}}/audit/date-range?startDate=2025-01-01&endDate=2025-01-31&limit=1000 HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+# 🔍 Caso 4: Ver actividad de un departamento
+# Escenario: El gerente de Sales quiere ver qué se hizo en su departamento
+# Solución: Consultar por scope
+GET {{host}}/audit/scope?path=1.2.&limit=100 HTTP/1.1
+Authorization: Bearer {{ouAdminToken}}
+
+# 🔍 Caso 5: Análisis de productividad de administradores
+# Escenario: Quieres ver cuántas acciones realizó cada admin
+# Solución: Ver estadísticas de cada admin
+GET {{host}}/audit/stats/5 HTTP/1.1
+Authorization: Bearer {{superAdminToken}}
+
+###############################################################################
+# 📝 NOTAS DEL SISTEMA DE AUDITORÍA
+###############################################################################
+
+# 1. Campos Registrados:
+#    - Who: actorId, actorName, actorRole
+#    - What: action (CREATE, READ, UPDATE, DELETE, MOVE)
+#    - Target: targetId, targetName, targetType
+#    - Scope: mpath del actor
+#    - When: createdAt (timestamp)
+#    - Context: ipAddress, userAgent, metadata
+
+# 2. Seguridad:
+#    - Solo SUPER_ADMIN y OU_ADMIN pueden consultar logs
+#    - Logs son de solo lectura (no se pueden modificar)
+#    - Cada consulta requiere autenticación JWT
+
+# 3. Performance:
+#    - Índices optimizados en actorId, targetId, action, createdAt
+#    - Límites recomendados: 50-100 para usuario/objetivo, 100-200 para acciones
+
+# 4. Documentación Completa:
+#    - Ver: AUDIT_SYSTEM.md
+#    - Tests: test/audit.e2e-spec.ts
+#    - Código: src/audit/
+
+###############################################################################

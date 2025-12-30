@@ -8,6 +8,7 @@ import { DirectoryModule } from '@/directory/directory.module'; // Para buscar u
 import { LocalStrategy } from '@/auth/strategies/local.strategy';
 import { JwtStrategy } from '@/auth/strategies/jwt.strategy';
 import { HierarchicalPermissionsGuard } from '@/auth/guards/hierarchical-permissions.guard';
+import { AntiEscalationService } from '@/auth/services/anti-escalation.service';
 
 @Module({
   imports: [
@@ -21,7 +22,13 @@ import { HierarchicalPermissionsGuard } from '@/auth/guards/hierarchical-permiss
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy, HierarchicalPermissionsGuard],
-  exports: [AuthService, HierarchicalPermissionsGuard],
+  providers: [
+    AuthService,
+    LocalStrategy,
+    JwtStrategy,
+    HierarchicalPermissionsGuard,
+    AntiEscalationService,
+  ],
+  exports: [AuthService, HierarchicalPermissionsGuard, AntiEscalationService],
 })
 export class AuthModule { }
