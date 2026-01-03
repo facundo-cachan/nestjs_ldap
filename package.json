@@ -5,7 +5,7 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
-  "packageManager": "pnpm@10.26.2",
+  "packageManager": "pnpm@10.27.0",
   "scripts": {
     "clean": "npx rimraf dist",
     "build": "NODE_ENV=production nest build",
@@ -27,16 +27,17 @@
     "test:e2e": "NODE_ENV=test jest --config ./test/jest-e2e.json",
     "test:watch": "jest --watch",
     "test": "jest",
+    "seed": "ts-node -r tsconfig-paths/register src/seed.ts",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js"
   },
   "dependencies": {
     "@nestjs/cache-manager": "3.1.0",
-    "@nestjs/common": "11.1.10",
+    "@nestjs/common": "11.1.11",
     "@nestjs/config": "4.0.2",
-    "@nestjs/core": "11.1.10",
+    "@nestjs/core": "11.1.11",
     "@nestjs/jwt": "11.0.2",
     "@nestjs/passport": "11.0.5",
-    "@nestjs/platform-express": "11.1.10",
+    "@nestjs/platform-express": "11.1.11",
     "@nestjs/typeorm": "11.0.0",
     "bcrypt": "6.0.0",
     "cache-manager-redis-store": "3.0.1",
@@ -56,9 +57,9 @@
     "@nestjs/cli": "11.0.14",
     "@nestjs/schematics": "11.0.9",
     "@nestjs/swagger": "11.2.3",
-    "@nestjs/testing": "11.1.10",
+    "@nestjs/testing": "11.1.11",
     "@swc/cli": "0.7.9",
-    "@swc/core": "1.15.7",
+    "@swc/core": "1.15.8",
     "@types/bcrypt": "6.0.0",
     "@types/express": "5.0.6",
     "@types/jest": "30.0.0",
@@ -70,7 +71,7 @@
     "eslint": "9.39.2",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-prettier": "5.5.4",
-    "globals": "16.5.0",
+    "globals": "17.0.0",
     "jest": "30.2.0",
     "prettier": "3.7.4",
     "source-map-support": "0.5.21",
@@ -80,6 +81,6 @@
     "ts-node": "10.9.2",
     "tsconfig-paths": "4.2.0",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.50.1"
+    "typescript-eslint": "8.51.0"
   }
 }

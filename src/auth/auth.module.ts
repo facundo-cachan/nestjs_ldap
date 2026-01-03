@@ -1,5 +1,5 @@
 import { JwtModule } from '@nestjs/jwt';
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 
 import { AuthService } from '@/auth/auth.service';
@@ -12,7 +12,7 @@ import { AntiEscalationService } from '@/auth/services/anti-escalation.service';
 
 @Module({
   imports: [
-    DirectoryModule, // Importamos para poder usar DirectoryService
+    forwardRef(() => DirectoryModule), // Importamos para poder usar DirectoryService
     PassportModule,
     JwtModule.register({
       secret: String(process.env.JWT_SECRET), // Mover a .env

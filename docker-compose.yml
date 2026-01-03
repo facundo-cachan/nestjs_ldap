@@ -25,7 +25,7 @@ services:
       cache:
         condition: service_started
     networks:
-      - rbac-network
+      - ldap_network
 
   database:
     platform: linux/amd64
@@ -52,7 +52,7 @@ services:
     ports:
       - '${POSTGRES_PORT}:5432'
     networks:
-      - rbac-network
+      - ldap_network
 
   cache:
     platform: linux/amd64
@@ -65,7 +65,7 @@ services:
     volumes:
       - 'cache_storage:/var/lib/postgresql/data'
     networks:
-      - rbac-network
+      - ldap_network
 
 volumes:
   db_storage:
@@ -77,6 +77,6 @@ volumes:
     name: nestjs_ldap-backend-cache
 
 networks:
-  rbac-network:
+  ldap_network:
     driver: bridge
     name: nestjs_ldap_network

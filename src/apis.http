@@ -120,8 +120,8 @@ POST {{host}}/auth/login HTTP/1.1
 Content-Type: application/json
 
 {
-  "username": "superadmin",
-  "password": "admin123"
+  "username": "admin",
+  "password": "ChangeMe123!"
 }
 
 ### AUTH 2: Login como OU_ADMIN (Sales)

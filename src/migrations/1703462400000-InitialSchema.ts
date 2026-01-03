@@ -5,9 +5,7 @@ export class InitialSchema1703462400000 implements MigrationInterface {
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         // Crear la tabla directory_node
-        await queryRunner.query(`
-            CREATE TYPE "directory_node_type_enum" AS ENUM('DC', 'OU', 'GROUP', 'USER')
-        `);
+        await queryRunner.query(`CREATE TYPE "directory_node_type_enum" AS ENUM('DC', 'OU', 'GROUP', 'USER')`);
 
         await queryRunner.query(`
             CREATE TABLE "directory_node" (
