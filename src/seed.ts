@@ -8,9 +8,9 @@ async function bootstrap() {
     await AppDataSource.initialize();
     console.log('✅ Base de datos conectada.');
 
-    console.log('🔄 Ejecutando migraciones para asegurar esquema...');
-    await AppDataSource.runMigrations();
-    console.log('✅ Migraciones completadas.');
+    // console.log('🔄 Ejecutando migraciones para asegurar esquema...');
+    // await AppDataSource.runMigrations();
+    // console.log('✅ Migraciones completadas.');
 
     const nodeRepo = AppDataSource.getRepository(DirectoryNode);
 
@@ -57,6 +57,74 @@ async function bootstrap() {
       console.log('🔑 Credenciales iniciales -> Usuario: admin | Pass: ChangeMe123!');
     } else {
       console.log('ℹ️ El usuario admin ya existe.');
+    }
+
+    // 3. Crear Estructura Organizacional de Prueba
+    console.log('🔍 Buscando OU operaciones...');
+    let opsOU = await nodeRepo.findOne({
+      where: { name: 'operaciones', type: NodeType.OU },
+    });
+
+    if (!opsOU) {
+      console.log('✨ Creando OU operaciones...');
+      opsOU = new DirectoryNode();
+      opsOU.name = 'operaciones';
+      opsOU.type = NodeType.OU;
+      opsOU.parent = rootNode;
+      await nodeRepo.save(opsOU);
+      console.log('✅ OU operaciones creada.');
+    }
+
+    // 4. Crear Usuarios Adicionales
+    const testUsers = [
+      {
+        name: 'operador',
+        role: Role.USER,
+        pass: 'UserPass123!',
+        displayName: 'Operador Vial',
+      },
+      {
+        name: 'auditor',
+        role: Role.READONLY,
+        pass: 'AuditPass123!',
+        displayName: 'Auditor de Sistema',
+      },
+      {
+        name: 'admin_ops',
+        role: Role.OU_ADMIN,
+        pass: 'OpsPass123!',
+        displayName: 'Administrador de Operaciones',
+        adminOf: true,
+      },
+    ];
+
+    for (const u of testUsers) {
+      console.log(`🔍 Buscando usuario ${u.name}...`);
+      let userNode = await nodeRepo.findOne({
+        where: { name: u.name },
+      });
+
+      if (!userNode) {
+        console.log(`✨ Creando usuario ${u.name}...`);
+        userNode = new DirectoryNode();
+        userNode.name = u.name;
+        userNode.type = NodeType.USER;
+        userNode.password = u.pass;
+        userNode.roles = [u.role];
+        userNode.parent = opsOU;
+        userNode.attributes = {
+          email: `${u.name}@localhost`,
+          displayName: u.displayName,
+        };
+        if (u.adminOf) {
+          userNode.adminOfNodeId = opsOU.id;
+        }
+
+        await nodeRepo.save(userNode);
+        console.log(`✅ Usuario ${u.name} creado.`);
+      } else {
+        console.log(`ℹ️ El usuario ${u.name} ya existe.`);
+      }
     }
 
     console.log('🌱 Seeding completado exitosamente.');
