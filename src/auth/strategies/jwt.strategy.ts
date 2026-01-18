@@ -2,16 +2,19 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
 
+import { OidcKeyService } from '@/auth/services/oidc-key.service';
+
 /**
  * JwtStrategy: Valida y extrae información del JWT.
  * Se activa cuando usamos @UseGuards(JwtAuthGuard) en un endpoint.
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor() {
+  constructor(private readonly oidcKeyService: OidcKeyService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: String(process.env.JWT_SECRET || 'secreto_super_seguro'),
+      secretOrKey: oidcKeyService.getPublicKey(),
+      algorithms: ['RS256'],
       ignoreExpiration: false,
     });
   }

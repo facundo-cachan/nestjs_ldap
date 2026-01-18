@@ -224,4 +224,36 @@ export class AuditService {
       return acc;
     }, {} as Record<string, number>);
   }
+
+  /**
+   * Registra una acción LDAP (bind o search) en el audit log.
+   *
+   * @param createAuditLogDto - DTO con la información del evento LDAP.
+   * @returns El registro de auditoría creado.
+   */
+  async logLdapAction(createAuditLogDto: CreateAuditLogDto): Promise<AuditLog> {
+    return this.log(createAuditLogDto);
+  }
+
+  /**
+   * Registra el uso de un refresh token y su rotación.
+   *
+   * @param createAuditLogDto - DTO con la información del refresh.
+   * @returns El registro de auditoría creado.
+   */
+  async logRefresh(createAuditLogDto: CreateAuditLogDto): Promise<AuditLog> {
+    return this.log(createAuditLogDto);
+  }
+
+  /**
+   * Registra un logout (SLO) y la inserción del token en la lista de revocación.
+   *
+   * @param createAuditLogDto - DTO con la información del logout.
+   * @returns El registro de auditoría creado.
+   */
+  async logLogout(createAuditLogDto: CreateAuditLogDto): Promise<AuditLog> {
+    return this.log(createAuditLogDto);
+  }
+
 }
+

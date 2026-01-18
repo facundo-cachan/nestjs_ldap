@@ -78,7 +78,7 @@ export class HierarchyGuard implements CanActivate {
     const newParentId = request.body?.newParentId;
     if (moveNodeId && newParentId) {
       // Validar que el nodo a mover esté en el scope
-      const canAccessNode = await this.validateTargetNodeAccess(user, moveNodeId.toString());
+      const canAccessNode = await this.validateTargetNodeAccess(user, String(moveNodeId));
       if (!canAccessNode) return false;
 
       // Validar que el nuevo padre esté en el scope
@@ -90,7 +90,7 @@ export class HierarchyGuard implements CanActivate {
     // ---------------------------------------------------------
     const rootId = request.params.rootId || request.query?.rootId;
     if (rootId) {
-      return this.validateRootNodeAccess(user, rootId);
+      return this.validateRootNodeAccess(user, String(rootId));
     }
 
     // Si no hay ID, parentID ni rootID, dejamos pasar

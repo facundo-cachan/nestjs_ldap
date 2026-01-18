@@ -1,10 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 import { AuthController } from '@/auth/auth.controller';
 import { AuthService } from '@/auth/auth.service';
 import { User } from '@/auth/interfaces/user.interface';
 import { NodeType } from '@/directory/entities/directory-node.entity';
 import { Role } from '@/auth/enums/role.enum';
+import { AuditService } from '@/audit/audit.service';
+import { JwtBlacklistGuard } from '@/auth/guards/jwt-blacklist.guard';
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -12,6 +16,17 @@ describe('AuthController', () => {
 
   const mockAuthService = {
     login: jest.fn(),
+    refresh: jest.fn(),
+    logout: jest.fn(),
+  };
+
+  const mockAuditService = {
+    logLogout: jest.fn(),
+  };
+
+  const mockCacheManager = {
+    get: jest.fn(),
+    set: jest.fn(),
   };
 
   const mockUser: Partial<User> = {
@@ -36,8 +51,21 @@ describe('AuthController', () => {
           provide: AuthService,
           useValue: mockAuthService,
         },
+        {
+          provide: AuditService,
+          useValue: mockAuditService,
+        },
+        {
+          provide: CACHE_MANAGER,
+          useValue: mockCacheManager,
+        },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(JwtBlacklistGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<AuthController>(AuthController);
     authService = module.get<AuthService>(AuthService);

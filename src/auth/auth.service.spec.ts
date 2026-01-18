@@ -1,5 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import * as bcrypt from 'bcrypt';
 
 import { AuthService } from '@/auth/auth.service';
@@ -7,6 +9,7 @@ import { DirectoryService } from '@/directory/directory.service';
 import { User } from '@/auth/interfaces/user.interface';
 import { NodeType } from '@/directory/entities/directory-node.entity';
 import { Role } from '@/auth/enums/role.enum';
+import { AuditService } from '@/audit/audit.service';
 
 // Mock bcrypt
 jest.mock('bcrypt');
@@ -22,6 +25,21 @@ describe('AuthService', () => {
 
   const mockJwtService = {
     sign: jest.fn(),
+    verify: jest.fn(),
+  };
+
+  const mockConfigService = {
+    get: jest.fn(),
+  };
+
+  const mockAuditService = {
+    logRefresh: jest.fn(),
+  };
+
+  const mockCacheManager = {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
   };
 
   const mockUser: Partial<User> = {
@@ -48,6 +66,18 @@ describe('AuthService', () => {
         {
           provide: JwtService,
           useValue: mockJwtService,
+        },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
+        },
+        {
+          provide: AuditService,
+          useValue: mockAuditService,
+        },
+        {
+          provide: CACHE_MANAGER,
+          useValue: mockCacheManager,
         },
       ],
     }).compile();
@@ -189,6 +219,48 @@ describe('AuthService', () => {
       mockDirectoryService.findOne.mockResolvedValue(null);
 
       await expect(service.login(userWithoutPassword as User)).rejects.toThrow('User not found');
+    });
+  });
+
+  describe('refresh', () => {
+    it('should rotate access and refresh tokens when a valid refresh token is provided', async () => {
+      const mockPayload = { sub: 'testuser', type: 'refresh', jti: 'old-jti' };
+      mockJwtService.verify.mockReturnValue(mockPayload);
+      mockCacheManager.get.mockResolvedValue('testuser'); // Token is whitelisted
+      mockDirectoryService.findUserByNameWithPassword.mockResolvedValue(mockUser);
+      mockDirectoryService.findOne.mockResolvedValue(mockUser);
+      mockJwtService.sign.mockReturnValue('new-token');
+
+      const result = await service.refresh('old-refresh-token');
+
+      expect(result).toBeDefined();
+      expect(mockCacheManager.del).toHaveBeenCalledWith('refresh_token:old-jti');
+      expect(mockCacheManager.set).toHaveBeenCalledWith(
+        expect.stringMatching(/^refresh_token:/),
+        'testuser',
+        expect.any(Number),
+      );
+    });
+
+    it('should throw error if refresh token is not in Redis (already used or revoked)', async () => {
+      const mockPayload = { sub: 'testuser', type: 'refresh', jti: 'used-jti' };
+      mockJwtService.verify.mockReturnValue(mockPayload);
+      mockCacheManager.get.mockResolvedValue(null); // Not in whitelist
+
+      await expect(service.refresh('used-refresh-token')).rejects.toThrow('Refresh token invalid or expired');
+    });
+  });
+
+  describe('logout', () => {
+    it('should blacklist the access token jti in Redis', async () => {
+      mockConfigService.get.mockReturnValue(86400); // 24h
+      await service.logout('test-jti');
+
+      expect(mockCacheManager.set).toHaveBeenCalledWith(
+        'revoked_token:test-jti',
+        true,
+        86400 * 1000,
+      );
     });
   });
 });

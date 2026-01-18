@@ -12,6 +12,7 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import helmet from 'helmet';
 
 import * as dotenv from 'dotenv';
 import { AppModule } from './app.module';
@@ -41,6 +42,7 @@ const myCustom: SwaggerCustomOptions = {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.use(helmet());
 
   app.useGlobalPipes(
     new ValidationPipe({
