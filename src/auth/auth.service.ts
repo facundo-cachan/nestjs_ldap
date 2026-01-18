@@ -1,6 +1,7 @@
-import * as bcrypt from 'bcrypt';
-import { JwtService } from '@nestjs/jwt';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
 
 import { DirectoryService } from '@/directory/directory.service';
 import { NodeType } from '@/directory/entities/directory-node.entity';
@@ -15,6 +16,7 @@ export class AuthService {
   constructor(
     private readonly directoryService: DirectoryService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) { }
 
   /**
@@ -60,14 +62,23 @@ export class AuthService {
     const payload: JwtPayload = {
       sub: fullUser.name,
       id: fullUser.id,
+      iss: this.configService.get<string>('JWT_ISSUER', 'sigesta-auth-ldap'),
+      aud: this.configService.get<string>('JWT_AUDIENCE', 'sigesta-apps'),
       role,
       roles,
       adminOfNodeId,
       mpath: fullUser.mpath, // CRÍTICO: Incluir mpath para scope checking
     };
 
+    const access_token = this.jwtService.sign(payload);
+    const refresh_token = this.jwtService.sign(
+      { sub: fullUser.name, type: 'refresh' },
+      { expiresIn: '7d' },
+    );
+
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token,
+      refresh_token,
       user: {
         id: fullUser.id,
         username: fullUser.name,
@@ -77,6 +88,25 @@ export class AuthService {
         mpath: fullUser.mpath,
       },
     };
+  }
+
+  /**
+   * Refresca el access_token usando un refresh_token válido.
+   */
+  async refresh(token: string) {
+    try {
+      const payload = this.jwtService.verify(token);
+      if (payload.type !== 'refresh') {
+        throw new Error('Invalid token type');
+      }
+
+      const user = await this.directoryService.findUserByNameWithPassword(payload.sub);
+      if (!user) throw new Error('User not found');
+
+      return this.login(user as any);
+    } catch (e) {
+      throw new Error('Refresh token invalid or expired');
+    }
   }
 
   /**

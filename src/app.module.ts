@@ -13,6 +13,7 @@ import { AppService } from '@/app.service';
 import { DirectoryModule } from '@/directory/directory.module';
 import { AuthModule } from '@/auth/auth.module';
 import { AuditModule } from '@/audit/audit.module';
+import { LdapGatewayModule } from '@/ldap-gateway/ldap-gateway.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { AuditModule } from '@/audit/audit.module';
     DirectoryModule,
     AuthModule,
     AuditModule,
+    LdapGatewayModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -4,6 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 
 import { AuthService } from '@/auth/auth.service';
 import { AuthController } from '@/auth/auth.controller';
+import { OidcController, UserInfoController } from '@/auth/oidc.controller';
 import { DirectoryModule } from '@/directory/directory.module'; // Para buscar usuarios
 import { LocalStrategy } from '@/auth/strategies/local.strategy';
 import { JwtStrategy } from '@/auth/strategies/jwt.strategy';
@@ -21,7 +22,7 @@ import { AntiEscalationService } from '@/auth/services/anti-escalation.service';
       },
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, OidcController, UserInfoController],
   providers: [
     AuthService,
     LocalStrategy,

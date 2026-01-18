@@ -1,12 +1,9 @@
-import { Controller, Post, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, UseGuards, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 
 import { LoginDto } from '@/auth/dto/login.dto';
 import { AuthService } from '@/auth/auth.service';
-import { User } from '@/auth/interfaces/user.interface';
 import { LocalAuthGuard } from '@/auth/guards/local-auth.guard';
-
-import type { Request as ExpressRequest } from 'express';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -56,8 +53,15 @@ export class AuthController {
     status: 401,
     description: 'Invalid credentials',
   })
-  async login(@Request() req: ExpressRequest & { user: User }): Promise<{ access_token: string; user: Partial<User> }> {
-    // NOTE: Si llegamos aquí, el LocalAuthGuard ya validó las credenciales y adjuntó el usuario al objeto req.user
-    return this.authService.login(req.user);
+  @Post('refresh')
+  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { refresh_token: { type: 'string' } },
+    },
+  })
+  async refresh(@Body('refresh_token') token: string) {
+    return this.authService.refresh(token);
   }
 }
