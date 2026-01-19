@@ -246,7 +246,7 @@ export class OAuth2Controller {
     }
 
     // Obtener datos del usuario
-    const user = await this.directoryService.findOne(authzData.userId);
+    const user = await this.directoryService.findOne(String(authzData.userId));
     if (!user) {
       throw new UnauthorizedException('User not found');
     }

@@ -147,7 +147,7 @@ export class LdapGatewayService implements OnModuleInit, OnModuleDestroy {
 
   private async executeSearch(scope: string, rootId: number | undefined, searchTerm: string, searchType: any): Promise<any[]> {
     if (scope === 'base' && rootId) {
-      const node = await this.directoryService.findOne(rootId);
+      const node = await this.directoryService.findOne(String(rootId));
       return node ? [node] : [];
     }
 

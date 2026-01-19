@@ -1,32 +1,32 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'node:crypto';
 
 @Injectable()
-export class OidcKeyService implements OnModuleInit {
+export class OidcKeyService {
   private readonly logger = new Logger(OidcKeyService.name);
   private privateKey: string;
   private publicKey: string;
   private publicKeyJwks: any;
 
-  constructor(private readonly configService: ConfigService) { }
-
-  async onModuleInit() {
-    await this.initializeKeys();
+  constructor(private readonly configService: ConfigService) {
+    this.initializeKeys();
   }
 
   /**
    * Inicializa las claves RSA para OIDC.
    * Intenta cargar desde variables de entorno o genera una nueva.
    */
-  private async initializeKeys() {
+  private initializeKeys() {
     let privateKeyPem = this.configService.get<string>('OIDC_PRIVATE_KEY');
 
     if (privateKeyPem) {
+      privateKeyPem = privateKeyPem.replace(/\\n/g, '\n');
       this.logger.log('OIDC Private Key loaded from config');
-      // Si tenemos la privada, podemos derivar la pública
+      // Si tenemos la privada, derivamos la pública correctamente
       const keyObject = crypto.createPrivateKey(privateKeyPem);
-      this.publicKey = keyObject.export({ type: 'spki', format: 'pem' }) as string;
+      const publicKeyObject = crypto.createPublicKey(keyObject);
+      this.publicKey = publicKeyObject.export({ type: 'spki', format: 'pem' }) as string;
     } else {
       this.logger.warn('No OIDC_PRIVATE_KEY found. Generating a new one (ephemeral)...');
       const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {

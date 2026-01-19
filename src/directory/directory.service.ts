@@ -5,6 +5,7 @@ import { TreeRepository } from 'typeorm'; // OJO: Usamos TreeRepository, no Repo
 
 import { DirectoryNode, NodeType } from '@/directory/entities/directory-node.entity';
 import { CreateNodeDto } from '@/directory/dto/create-node.dto';
+import { UpdateNodeDto } from '@/directory/dto/update-node.dto';
 
 @Injectable()
 export class DirectoryService {
@@ -55,6 +56,33 @@ export class DirectoryService {
 
     // Al guardar, TypeORM genera el mpath (ej: "1.5.12.")
     return await this.nodeRepository.save(newNode);
+  }
+
+  /**
+   * Actualiza un nodo existente.
+   * No permite cambiar el parentId (usar moveBranch para eso).
+   */
+  async update(id: string, updateNodeDto: UpdateNodeDto): Promise<DirectoryNode> {
+    const node = await this.nodeRepository.findOneBy({ id: Number(id) });
+    if (!node) {
+      throw new NotFoundException(`Node with ID ${id} not found`);
+    }
+
+    if (updateNodeDto.name) {
+      node.name = updateNodeDto.name;
+    }
+
+    if (updateNodeDto.attributes) {
+      // Merge de atributos
+      node.attributes = { ...node.attributes, ...updateNodeDto.attributes };
+    }
+
+    // Solo actualizamos password si es un USER y viene en el DTO
+    if (updateNodeDto.password && node.type === NodeType.USER) {
+      node.password = updateNodeDto.password;
+    }
+
+    return await this.nodeRepository.save(node);
   }
 
   /**
@@ -137,12 +165,22 @@ export class DirectoryService {
    * Busca un nodo por su ID.
    * Incluye el mpath para scope checking.
    */
-  async findOne(id: number): Promise<DirectoryNode | null> {
+  async findOne(id: string): Promise<DirectoryNode | null> {
     // Usar getRawOne para obtener TODAS las columnas incluyendo mpath
-    const raw = await this.nodeRepository
-      .createQueryBuilder('node')
-      .where('node.id = :id', { id })
-      .getRawOne();
+    const query = this.nodeRepository.createQueryBuilder('node');
+
+    if (Number.isInteger(Number(id))) {
+      // Es un ID numérico
+      query.where('node.id = :id', { id });
+    } else {
+      // Es un string username o email
+      query.where(
+        '(node.name = :id OR node.attributes->>\'email\' = :id)',
+        { id }
+      );
+    }
+
+    const raw = await query.getRawOne();
 
     if (!raw) return null;
 

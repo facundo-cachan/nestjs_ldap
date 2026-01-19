@@ -11,6 +11,7 @@ import { DirectoryService } from '@/directory/directory.service';
 import { NodeType } from '@/directory/entities/directory-node.entity';
 import { JwtPayload } from '@/auth/interfaces/jwt-payload.interface';
 import { AuditService } from '@/audit/audit.service';
+import { LoginDto } from '@/auth/dto/login.dto';
 
 import type { UserCredentials } from '@/auth/interfaces/user.interface';
 
@@ -61,10 +62,10 @@ export class AuthService {
    * @param clientId Client ID de la app (opcional, para flujo OIDC)
    * @returns Tokens de acceso, refresh y opcionalmente ID token
    */
-  async login(user: User, clientId?: string) {
+  async login({ username, password }: LoginDto, clientId?: string) {
     // NOTE: Necesitamos obtener el mpath del usuario desde la BD
     // El objeto 'user' que viene del validateUser no incluye mpath
-    const fullUser = await this.directoryService.findOne(user.id);
+    const fullUser = await this.directoryService.findOne(username);
     if (!fullUser) {
       throw new Error('User not found');
     }
@@ -187,7 +188,7 @@ export class AuthService {
         metadata: { sub },
       });
 
-      return this.login(user);
+      return this.login({ username: user.name, password: '' });
     } catch (e: any) {
       const errorMsg = e instanceof Error ? e.message : String(e);
       this.logger.error(`Refresh token failed: ${errorMsg}`);

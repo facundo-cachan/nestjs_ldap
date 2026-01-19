@@ -167,7 +167,7 @@ export class AntiEscalationService {
     parentId: number,
   ): Promise<void> {
     // Obtener el nodo padre
-    const parentNode = await this.directoryService.findOne(parentId);
+    const parentNode = await this.directoryService.findOne(String(parentId));
     if (!parentNode) {
       throw new BadRequestException('Parent ID no válido');
     }
@@ -203,13 +203,13 @@ export class AntiEscalationService {
     newParentId: number,
   ): Promise<void> {
     // Obtener el nodo a mover
-    const nodeToMove = await this.directoryService.findOne(nodeId);
+    const nodeToMove = await this.directoryService.findOne(String(nodeId));
     if (!nodeToMove) {
       throw new BadRequestException('Node ID no válido');
     }
 
     // Obtener el nuevo padre
-    const newParent = await this.directoryService.findOne(newParentId);
+    const newParent = await this.directoryService.findOne(String(newParentId));
     if (!newParent) {
       throw new BadRequestException('New Parent ID no válido');
     }
@@ -252,13 +252,13 @@ export class AntiEscalationService {
     newParentId: number,
   ): Promise<void> {
     // Obtener el nodo a mover
-    const nodeToMove = await this.directoryService.findOne(nodeId);
+    const nodeToMove = await this.directoryService.findOne(String(nodeId));
     if (!nodeToMove) {
       throw new BadRequestException('Node ID no válido');
     }
 
     // Obtener el nuevo padre
-    const newParent = await this.directoryService.findOne(newParentId);
+    const newParent = await this.directoryService.findOne(String(newParentId));
     if (!newParent) {
       throw new BadRequestException('New Parent ID no válido');
     }
@@ -289,7 +289,7 @@ export class AntiEscalationService {
   private async getEffectiveMpath(user: JwtPayload): Promise<string> {
     // Si es OU_ADMIN y tiene adminOfNodeId, obtener el mpath de ese nodo
     if (user.role === Role.OU_ADMIN && user.adminOfNodeId) {
-      const adminNode = await this.directoryService.findOne(user.adminOfNodeId);
+      const adminNode = await this.directoryService.findOne(String(user.adminOfNodeId));
       if (adminNode?.mpath) {
         return adminNode.mpath;
       }

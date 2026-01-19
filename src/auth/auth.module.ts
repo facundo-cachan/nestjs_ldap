@@ -1,6 +1,7 @@
 import { JwtModule } from '@nestjs/jwt';
 import { Module, forwardRef } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { AuthService } from '@/auth/auth.service';
 import { AuthController } from '@/auth/auth.controller';
@@ -12,15 +13,16 @@ import { HierarchicalPermissionsGuard } from '@/auth/guards/hierarchical-permiss
 import { JwtBlacklistGuard } from '@/auth/guards/jwt-blacklist.guard';
 import { AntiEscalationService } from '@/auth/services/anti-escalation.service';
 import { AuditModule } from '@/audit/audit.module';
+import { OidcKeyModule } from '@/auth/oidc-key.module';
 import { OidcKeyService } from '@/auth/services/oidc-key.service';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
     forwardRef(() => DirectoryModule), // Importamos para poder usar DirectoryService
     PassportModule,
+    OidcKeyModule,
     JwtModule.registerAsync({
-      imports: [ConfigModule],
+      imports: [ConfigModule, OidcKeyModule],
       inject: [ConfigService, OidcKeyService],
       useFactory: (configService: ConfigService, oidcKeyService: OidcKeyService) => ({
         privateKey: oidcKeyService.getPrivateKey(),
@@ -40,8 +42,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     HierarchicalPermissionsGuard,
     JwtBlacklistGuard,
     AntiEscalationService,
-    OidcKeyService,
   ],
-  exports: [AuthService, HierarchicalPermissionsGuard, AntiEscalationService, OidcKeyService],
+  exports: [AuthService, HierarchicalPermissionsGuard, AntiEscalationService, OidcKeyModule],
 })
 export class AuthModule { }

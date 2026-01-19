@@ -4,13 +4,13 @@ import { Request } from 'express';
 
 import { LoginDto } from '@/auth/dto/login.dto';
 import { AuthService } from '@/auth/auth.service';
-import { LocalAuthGuard } from '@/auth/guards/local-auth.guard';
+//import { LocalAuthGuard } from '@/auth/guards/local-auth.guard';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { AuditService } from '@/audit/audit.service';
 import { LogLogoutDto } from '@/audit/dto/log-logout.dto';
 import { JwtBlacklistGuard } from '@/auth/guards/jwt-blacklist.guard';
 import { JwtPayload } from '@/auth/interfaces/jwt-payload.interface';
-import { User } from '@/auth/interfaces/user.interface';
+//import { User } from '@/auth/interfaces/user.interface';
 
 /**
  * Controlador de autenticación.
@@ -29,7 +29,7 @@ export class AuthController {
    * LocalAuthGuard invoca la LocalStrategy automáticamente.
    */
   @Post('login')
-  @UseGuards(LocalAuthGuard)
+    //c@UseGuards(LocalAuthGuard)
   @ApiOperation({ summary: 'User authentication' })
   @ApiBody({ type: LoginDto })
   @ApiResponse({
@@ -47,9 +47,10 @@ export class AuthController {
     },
   })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Req() req: Request): Promise<any> {
-    const user = req.user as User;
-    return this.authService.login(user);
+  async login(@Body() loginDto: LoginDto): Promise<any> {
+    const user = await this.authService.login(loginDto);
+    console.log(user);
+    return user;
   }
 
   /**
