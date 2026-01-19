@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -37,8 +37,7 @@ export class AuthService {
   ): Promise<Partial<User> | null> {
     // 1. Buscamos el nodo. Nota: necesitamos el password, así que usamos addSelect
     // Asumimos que el 'username' es el 'name' del nodo, pero podría ser un email en los attributes.
-    const user =
-      await this.directoryService.findUserByNameWithPassword(username);
+    const user = await this.directoryService.findUserByEmailWithPassword(username);
 
     // 2. Verificaciones: Que exista, que sea tipo USER y que el pass coincida
     if (user && user.type === NodeType.USER && user.password) {
@@ -56,26 +55,59 @@ export class AuthService {
 
   /**
    * Genera el JWT tras un login exitoso.
+   * Valida las credenciales del usuario (username y password) antes de generar tokens.
    * Incluye información de roles para RBAC jerárquico.
    *
-   * @param user Usuario autenticado
+   * @param loginDto Credenciales del usuario (username y password)
    * @param clientId Client ID de la app (opcional, para flujo OIDC)
    * @returns Tokens de acceso, refresh y opcionalmente ID token
+   * @throws UnauthorizedException Si las credenciales son inválidas
+   *
+   * @example
+   * ```typescript
+   * const result = await authService.login({ username: 'juan.perez', password: 'SecurePass123!' });
+   * // Returns: { access_token, refresh_token, id_token?, user }
+   * ```
    */
   async login({ username, password }: LoginDto, clientId?: string) {
-    // NOTE: Necesitamos obtener el mpath del usuario desde la BD
-    // El objeto 'user' que viene del validateUser no incluye mpath
-    const fullUser = await this.directoryService.findOne(username);
-    if (!fullUser) {
-      throw new Error('User not found');
+    // 1. Validar credenciales del usuario (username + password)
+    const validatedUser = await this.validateUser(username, password);
+
+    if (!validatedUser) {
+      // Log intento fallido de login para auditoría
+      await this.auditService.log({
+        actorId: 0,
+        actorName: username,
+        actorRole: 'UNKNOWN',
+        action: 'LOGIN',
+        scope: '',
+        status: 'FAILURE',
+        metadata: {
+          reason: 'Invalid credentials',
+          username,
+        },
+      });
+
+      this.logger.warn(`Failed login attempt for user: ${username}`);
+      throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Determinar rol del usuario desde la BD o attributes
+    // 2. Obtener información completa del usuario desde la BD
+    // NOTE: Necesitamos obtener el mpath del usuario desde la BD
+    // El objeto 'validatedUser' que viene del validateUser no incluye mpath
+    const fullUser = await this.directoryService.findOne(username);
+    if (!fullUser) {
+      this.logger.error(`User validated but not found in DB: ${username}`);
+      throw new UnauthorizedException('User not found');
+    }
+
+    // 3. Determinar rol del usuario desde la BD o attributes
     const role = this.getUserRole(fullUser);
     const roles = fullUser.roles || [role];
     const adminOfNodeId =
       fullUser.adminOfNodeId || this.getAdminNodeId(fullUser, role);
 
+    // 4. Crear payload del JWT
     const payload: JwtPayload = {
       sub: fullUser.name,
       id: fullUser.id,
@@ -89,14 +121,17 @@ export class AuthService {
       jti: crypto.randomUUID(), // Generar ID único para el token
     };
 
+    // 5. Generar Access Token
     const access_token = this.jwtService.sign(payload);
+
+    // 6. Generar Refresh Token
     const refreshTokenJti = crypto.randomUUID();
     const refresh_token = this.jwtService.sign(
       { sub: fullUser.name, type: 'refresh', jti: refreshTokenJti },
       { expiresIn: '7d' },
     );
 
-    // Persistir Refresh Token en Redis para rotación y revocación
+    // 7. Persistir Refresh Token en Redis para rotación y revocación
     // Expira en 7 días (igual que el token)
     await this.cacheManager.set(
       `refresh_token:${refreshTokenJti}`,
@@ -104,7 +139,7 @@ export class AuthService {
       7 * 24 * 60 * 60 * 1000,
     );
 
-    // Generar ID Token si es flujo OIDC (cuando hay clientId)
+    // 8. Generar ID Token si es flujo OIDC (cuando hay clientId)
     let id_token: string | undefined;
     if (clientId) {
       const idTokenPayload = {
@@ -127,6 +162,22 @@ export class AuthService {
       id_token = this.jwtService.sign(idTokenPayload);
     }
 
+    // 9. Log login exitoso para auditoría
+    await this.auditService.log({
+      actorId: fullUser.id || 0,
+      actorName: fullUser.name,
+      actorRole: role,
+      action: 'LOGIN',
+      scope: fullUser.mpath || '',
+      status: 'SUCCESS',
+      metadata: {
+        username: fullUser.name,
+        roles,
+      },
+    });
+
+    // 10. Retornar tokens y datos del usuario
+    // NOTE: No retornamos role, roles, adminOfNodeId y mpath para mantener la seguridad
     return {
       access_token,
       refresh_token,
@@ -134,10 +185,10 @@ export class AuthService {
       user: {
         id: fullUser.id,
         username: fullUser.name,
-        role,
-        roles,
-        adminOfNodeId,
-        mpath: fullUser.mpath,
+        // role,
+        // roles,
+        // adminOfNodeId,
+        // mpath: fullUser.mpath,
       },
     };
   }
@@ -174,7 +225,7 @@ export class AuthService {
         throw new Error('Invalid token sub');
       }
 
-      const user = await this.directoryService.findUserByNameWithPassword(sub);
+      const user = await this.directoryService.findUserByEmailWithPassword(sub);
       if (!user) throw new Error('User not found');
 
       // Log REFRESH

@@ -153,11 +153,11 @@ export class DirectoryService {
    * Usado exclusivamente para autenticación.
    * NOTA: Por defecto, TypeORM no devuelve campos con @Column({ select: false })
    */
-  async findUserByNameWithPassword(username: string): Promise<DirectoryNode | null> {
+  async findUserByEmailWithPassword(email: string): Promise<DirectoryNode | null> {
     return await this.nodeRepository
       .createQueryBuilder('node')
-      .addSelect('node.password') // Incluimos explícitamente el password
-      .where('node.name = :username', { username })
+      .addSelect('node.password')
+      .where("node.attributes->>'email' = :email", { email })
       .getOne();
   }
 

@@ -16,6 +16,7 @@ import helmet from 'helmet';
 
 import * as dotenv from 'dotenv';
 import { AppModule } from './app.module';
+import { TransformInterceptor } from '@/common/interceptors/transform.interceptor';
 
 import type { SwaggerCustomOptions } from '@nestjs/swagger/dist/interfaces';
 
@@ -50,6 +51,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+  app.useGlobalInterceptors(new TransformInterceptor());
   app.enableCors({
     origin: [String(process.env.API_URL), 'http://localhost:3000'],
     credentials: true,
