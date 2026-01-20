@@ -1,5 +1,3 @@
-import { IsNotEmpty, IsString } from 'class-validator';
-
 import { CreateAuditLogDto } from './create-audit-log.dto';
 
 /**
