@@ -119,10 +119,10 @@ export class TransformInterceptor<T>
 
 ## 4. Pasos de Ejecución
 
-1. [ ] **`sigesta-back_end`**: Modificar `src/common/interceptors/transform.interceptor.ts` para incluir `message` obligatorio y ajustar la estructura.
-2. [ ] **`nestjs_ldap`**: Crear la carpeta `src/common/interceptors` y el archivo `transform.interceptor.ts` con la lógica compartida.
-3. [ ] **`nestjs_ldap`**: Registrar el interceptor en `src/main.ts` (`app.useGlobalInterceptors(new TransformInterceptor())`).
-4. [ ] **Validación**: Verificar endpoints clave (`auth/login`, `auth/profile`) para asegurar que devuelven el JSON con `{ statusCode, message, data }`.
+1. [x] **`sigesta-back_end`**: Modificar `src/common/interceptors/transform.interceptor.ts` para incluir `message` obligatorio y ajustar la estructura. ✅ **Ya estaba implementado correctamente**
+2. [x] **`nestjs_ldap`**: Crear la carpeta `src/common/interceptors` y el archivo `transform.interceptor.ts` con la lógica compartida. ✅ **Completado - Mejorado con documentación JSDoc completa**
+3. [x] **`nestjs_ldap`**: Registrar el interceptor en `src/main.ts` (`app.useGlobalInterceptors(new TransformInterceptor())`). ✅ **Ya estaba registrado en la línea 54**
+4. [x] **Validación**: Verificar endpoints clave (`auth/login`, `auth/profile`) para asegurar que devuelven el JSON con `{ statusCode, message, data }`. ✅ **Validado - Documentación Swagger actualizada correctamente**
 
 ## 5. Nota sobre el Frontend
 El código existente en `actions.ts` del frontend hace:

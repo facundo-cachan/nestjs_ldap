@@ -18,6 +18,11 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 - Mejorada la documentación JSDoc del método `login()` con ejemplos y descripción de excepciones
 - **Normalización de respuestas API**: El endpoint `/auth/login` ahora retorna respuestas en el formato estándar `RequestResponse` con estructura `{ statusCode, message, data }` gracias al `TransformInterceptor` global
 - Actualizada documentación de Swagger para reflejar el formato de respuesta normalizado
+- **Mejora del TransformInterceptor**: 
+  - Agregada documentación JSDoc completa para la interfaz `RequestResponse`, el interceptor y todos sus métodos
+  - Implementada lógica para detectar respuestas que ya están en el formato `RequestResponse` (ej: desde exception filters), evitando doble wrapping
+  - Cambiado el tipo de `statusCode` de `keyof typeof statusMessages` a `number` para mayor flexibilidad
+  - Mejorado el mensaje por defecto usando `'success'` en lugar de `statusMessages[200]`
 
 ### Fixed
 - **Status code correcto en login**: El endpoint `/auth/login` ahora retorna `200 OK` en lugar de `201 Created`, ya que no se está creando un recurso sino autenticando un usuario existente
