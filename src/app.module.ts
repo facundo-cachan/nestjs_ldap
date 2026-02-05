@@ -13,6 +13,8 @@ import { AppService } from '@/app.service';
 import { DirectoryModule } from '@/directory/directory.module';
 import { AuthModule } from '@/auth/auth.module';
 import { AuditModule } from '@/audit/audit.module';
+import { LdapGatewayModule } from '@/ldap-gateway/ldap-gateway.module';
+import { OAuth2Module } from '@/oauth2/oauth2.module';
 
 @Module({
   imports: [
@@ -56,7 +58,8 @@ import { AuditModule } from '@/audit/audit.module';
       inject: [ConfigService],
     }),
     CacheModule.register({
-      store: redisStore,
+      isGlobal: true,
+      store: process.env.NODE_ENV === 'test' ? 'memory' : redisStore,
       host: process.env.CACHE_HOST,
       port: process.env.CACHE_PORT,
       ttl: 300, // 5 minutos
@@ -64,6 +67,8 @@ import { AuditModule } from '@/audit/audit.module';
     DirectoryModule,
     AuthModule,
     AuditModule,
+    LdapGatewayModule,
+    OAuth2Module,
   ],
   controllers: [AppController],
   providers: [AppService],

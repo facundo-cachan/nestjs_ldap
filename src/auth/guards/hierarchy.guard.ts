@@ -78,7 +78,7 @@ export class HierarchyGuard implements CanActivate {
     const newParentId = request.body?.newParentId;
     if (moveNodeId && newParentId) {
       // Validar que el nodo a mover esté en el scope
-      const canAccessNode = await this.validateTargetNodeAccess(user, moveNodeId.toString());
+      const canAccessNode = await this.validateTargetNodeAccess(user, String(moveNodeId));
       if (!canAccessNode) return false;
 
       // Validar que el nuevo padre esté en el scope
@@ -90,7 +90,7 @@ export class HierarchyGuard implements CanActivate {
     // ---------------------------------------------------------
     const rootId = request.params.rootId || request.query?.rootId;
     if (rootId) {
-      return this.validateRootNodeAccess(user, rootId);
+      return this.validateRootNodeAccess(user, String(rootId));
     }
 
     // Si no hay ID, parentID ni rootID, dejamos pasar
@@ -106,7 +106,7 @@ export class HierarchyGuard implements CanActivate {
   private async getEffectiveMpath(user: JwtPayload): Promise<string> {
     // Si es OU_ADMIN y tiene adminOfNodeId, obtener el mpath de ese nodo
     if (user.role === Role.OU_ADMIN && user.adminOfNodeId) {
-      const adminNode = await this.directoryService.findOne(user.adminOfNodeId);
+      const adminNode = await this.directoryService.findOne(String(user.adminOfNodeId));
       if (adminNode?.mpath) {
         return adminNode.mpath;
       }
@@ -125,7 +125,7 @@ export class HierarchyGuard implements CanActivate {
       return true;
     }
 
-    const targetNode = await this.directoryService.findOne(Number(targetId));
+    const targetNode = await this.directoryService.findOne(String(targetId));
     if (!targetNode) {
       throw new NotFoundException('Nodo objetivo no encontrado');
     }
@@ -141,13 +141,13 @@ export class HierarchyGuard implements CanActivate {
   /**
    * Valida acceso al nodo padre para creación
    */
-  private async validateParentNodeAccess(user: JwtPayload, parentId: number): Promise<boolean> {
+  private async validateParentNodeAccess(user: JwtPayload, parentId: string): Promise<boolean> {
     // Permitir crear hijo directo
     if (Number(parentId) === user.id) {
       return true;
     }
 
-    const parentNode = await this.directoryService.findOne(Number(parentId));
+    const parentNode = await this.directoryService.findOne(String(parentId));
     if (!parentNode) {
       throw new BadRequestException('Parent ID no válido');
     }
@@ -163,7 +163,7 @@ export class HierarchyGuard implements CanActivate {
    * Valida acceso al nodo raíz para búsquedas en scope
    */
   private async validateRootNodeAccess(user: JwtPayload, rootId: string): Promise<boolean> {
-    const rootNode = await this.directoryService.findOne(Number(rootId));
+    const rootNode = await this.directoryService.findOne(String(rootId));
     if (!rootNode) {
       throw new NotFoundException('Root node not found');
     }

@@ -1,10 +1,11 @@
 // src/directory/directory.controller.ts
-import { Controller, Get, Post, Body, Param, Query, ParseIntPipe, UseGuards, Delete, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, ParseIntPipe, UseGuards, Delete, Req, Patch } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { Request } from 'express';
 
 import { DirectoryService } from '@/directory/directory.service';
 import { CreateNodeDto } from '@/directory/dto/create-node.dto';
+import { UpdateNodeDto } from '@/directory/dto/update-node.dto';
 import { DirectoryNode } from '@/directory/entities/directory-node.entity';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/auth/guards/roles.guard';
@@ -112,7 +113,7 @@ export class DirectoryController {
     @CurrentUser() user: any,
     @Req() req: Request,
   ) {
-    const node = await this.directoryService.findOne(id);
+    const node = await this.directoryService.findOne(String(id));
 
     // Registrar auditoría solo para admins (no para usuarios normales)
     if (user.role === 'SUPER_ADMIN' || user.role === 'OU_ADMIN') {
@@ -184,7 +185,7 @@ export class DirectoryController {
     // Validar anti-escalamiento (Fase 4)
     await this.antiEscalationService.validateNodeMove(user, nodeId, newParentId);
 
-    const node = await this.directoryService.findOne(nodeId);
+    const node = await this.directoryService.findOne(String(nodeId));
     const result = await this.directoryService.moveBranch(nodeId, newParentId);
 
     // Registrar auditoría para movimiento de nodos
@@ -206,6 +207,41 @@ export class DirectoryController {
     });
 
     return result;
+  }
+
+  @Patch(':id')
+  @Roles(Role.OU_ADMIN, Role.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Update a directory node' })
+  @ApiParam({ name: 'id', description: 'Node ID to update', type: 'number' })
+  @ApiBody({ type: UpdateNodeDto })
+  @ApiResponse({ status: 200, description: 'Node updated successfully' })
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateNodeDto: UpdateNodeDto,
+    @CurrentUser() user: any,
+    @Req() req: Request,
+  ) {
+    // HierarchyGuard ya valida que el usuario tenga permiso sobre este nodo
+
+    const updatedNode = await this.directoryService.update(String(id), updateNodeDto);
+
+    await this.auditService.log({
+      actorId: user.sub,
+      actorName: user.username,
+      actorRole: user.role,
+      action: 'UPDATE',
+      targetId: id,
+      targetName: updatedNode.name,
+      targetType: updatedNode.type,
+      scope: user.mpath,
+      metadata: {
+        changes: updateNodeDto,
+      },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
+    return updatedNode;
   }
 
   @Delete(':id')
@@ -233,7 +269,7 @@ export class DirectoryController {
     // 1. Está logueado (JwtAuthGuard)
     // 2. Es Admin (RolesGuard)
     // 3. El ID que quiere borrar ESTÁ debajo de él en el árbol (HierarchyGuard)
-    const node = await this.directoryService.findOne(id);
+    const node = await this.directoryService.findOne(String(id));
     if (!node) {
       throw new Error('Node not found');
     }

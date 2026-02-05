@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { AuditService } from '@/audit/audit.service';
+import { AntiEscalationService } from '@/auth/services/anti-escalation.service';
+import { Role } from '@/auth/enums/role.enum';
+
 import { DirectoryController } from '@/directory/directory.controller';
 import { DirectoryService } from '@/directory/directory.service';
 import { DirectoryNode, NodeType } from '@/directory/entities/directory-node.entity';
@@ -18,6 +22,29 @@ describe('DirectoryController', () => {
     getAncestors: jest.fn(),
     findOne: jest.fn(),
   };
+
+  const mockAuditService = {
+    log: jest.fn(),
+  };
+
+  const mockAntiEscalationService = {
+    validateNodeCreation: jest.fn(),
+    validateNodeMove: jest.fn(),
+  };
+
+  const mockUser = {
+    sub: 1,
+    username: 'admin',
+    role: Role.SUPER_ADMIN,
+    mpath: '1.',
+  };
+
+  const mockRequest = {
+    ip: '127.0.0.1',
+    headers: {
+      'user-agent': 'Jest',
+    },
+  } as any;
 
   const mockNode: DirectoryNode = {
     id: 1,
@@ -39,6 +66,14 @@ describe('DirectoryController', () => {
         {
           provide: DirectoryService,
           useValue: mockDirectoryService,
+        },
+        {
+          provide: AuditService,
+          useValue: mockAuditService,
+        },
+        {
+          provide: AntiEscalationService,
+          useValue: mockAntiEscalationService,
         },
       ],
     }).compile();
@@ -65,7 +100,7 @@ describe('DirectoryController', () => {
 
       mockDirectoryService.create.mockResolvedValue(mockNode);
 
-      const result = await controller.create(createDto);
+      const result = await controller.create(createDto, mockUser, mockRequest);
 
       expect(result).toEqual(mockNode);
       expect(service.create).toHaveBeenCalledWith(createDto);
@@ -131,8 +166,9 @@ describe('DirectoryController', () => {
   describe('moveNode', () => {
     it('should move a node to a new parent', async () => {
       mockDirectoryService.moveBranch.mockResolvedValue(mockNode);
+      mockDirectoryService.findOne.mockResolvedValue(mockNode);
 
-      const result = await controller.moveNode(1, 2);
+      const result = await controller.moveNode(1, 2, mockUser, mockRequest);
 
       expect(result).toEqual(mockNode);
       expect(service.moveBranch).toHaveBeenCalledWith(1, 2);
@@ -155,7 +191,7 @@ describe('DirectoryController', () => {
     it('should return a single node by id', async () => {
       mockDirectoryService.findOne.mockResolvedValue(mockNode);
 
-      const result = await controller.findOne(1);
+      const result = await controller.findOne(1, mockUser, mockRequest);
 
       expect(result).toEqual(mockNode);
       expect(service.findOne).toHaveBeenCalledWith(1);
@@ -166,7 +202,7 @@ describe('DirectoryController', () => {
     it('should return delete message when node exists', async () => {
       mockDirectoryService.findOne.mockResolvedValue(mockNode);
 
-      const result = await controller.remove(1);
+      const result = await controller.remove(1, mockUser, mockRequest);
 
       expect(result).toHaveProperty('message');
       expect(result).toHaveProperty('nodeId', 1);
@@ -176,7 +212,7 @@ describe('DirectoryController', () => {
     it('should throw error when node not found', async () => {
       mockDirectoryService.findOne.mockResolvedValue(null);
 
-      await expect(controller.remove(999)).rejects.toThrow('Node not found');
+      await expect(controller.remove(999, mockUser, mockRequest)).rejects.toThrow('Node not found');
     });
   });
 });

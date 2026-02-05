@@ -47,7 +47,7 @@ export class AuditLog {
 
   /**
    * Tipo de acción realizada (What)
-   * CREATE, READ, UPDATE, DELETE, MOVE
+   * CREATE, READ, UPDATE, DELETE, MOVE, LDAP_BIND, LDAP_SEARCH, REFRESH, LOGOUT
    */
   @Column({ type: 'varchar', length: 50, nullable: false })
   @Index()
